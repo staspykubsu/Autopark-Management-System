@@ -55,7 +55,29 @@ class CarDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['trips'] = self.object.trips.all().order_by('-departure_date')
+        car = self.object
+        
+        # Получаем все завершенные поездки для статистики
+        trips = car.trips.filter(return_date__isnull=False)
+        context['trips'] = car.trips.all().order_by('-departure_date')
+        
+        # Вычисляем общий пробег
+        total_distance = 0
+        completed_trips_count = 0
+        
+        for trip in trips:
+            if trip.distance():
+                total_distance += trip.distance()
+                completed_trips_count += 1
+        
+        context['total_distance'] = total_distance
+        
+        # Вычисляем средний пробег
+        if completed_trips_count > 0:
+            context['avg_distance'] = total_distance / completed_trips_count
+        else:
+            context['avg_distance'] = 0
+            
         return context
 
 

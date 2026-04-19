@@ -1,0 +1,40 @@
+/* Дополнительные стили для автопарка */
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.35em 0.65em;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 123, 255, 0.05);
+}
+
+.card-header {
+    font-weight: 500;
+}
+
+/* Цветовая индикация статусов в таблицах */
+.status-free {
+    color: #198754;
+    font-weight: 500;
+}
+
+.status-trip {
+    color: #fd7e14;
+    font-weight: 500;
+}
+
+.status-repair {
+    color: #6c757d;
+    font-weight: 500;
+}
+
+/* Для печати отчетов */
+@media print {
+    .navbar, .btn, form, .alert {
+        display: none !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+    }
+}

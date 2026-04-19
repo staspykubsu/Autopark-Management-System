@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Отчеты — Автопарк «Ветерок»{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-bar-chart"></i> Отчеты по пробегу</h1>
+
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-calendar"></i> Выберите период
+    </div>
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-4">{{ form.date_from|as_crispy_field }}</div>
+                <div class="col-md-4">{{ form.date_to|as_crispy_field }}</div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Сформировать отчет
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if car_report %}
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-car-front"></i> Пробег по автомобилям
+                <small class="float-end">{{ date_from|date:"d.m.Y" }} – {{ date_to|date:"d.m.Y" }}</small>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Автомобиль</th>
+                            <th>Госномер</th>
+                            <th>Поездок</th>
+                            <th>Пробег (км)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in car_report %}
+                        <tr>
+                            <td>{{ item.car__brand_model }}</td>
+                            <td>{{ item.car__license_plate }}</td>
+                            <td>{{ item.trips_count }}</td>
+                            <td><strong>{{ item.total_distance|default:0 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <i class="bi bi-people"></i> Выработка по водителям
+                <small class="float-end">{{ date_from|date:"d.m.Y" }} – {{ date_to|date:"d.m.Y" }}</small>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Водитель</th>
+                            <th>Смен</th>
+                            <th>Пробег (км)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in driver_report %}
+                        <tr>
+                            <td>{{ item.driver__name }}</td>
+                            <td>{{ item.trips_count }}</td>
+                            <td><strong>{{ item.total_distance|default:0 }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-3">
+    <button onclick="window.print()" class="btn btn-outline-secondary">
+        <i class="bi bi-printer"></i> Печать отчета
+    </button>
+</div>
+{% endif %}
+{% endblock %}

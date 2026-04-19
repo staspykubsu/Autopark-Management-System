@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Новая поездка — Автопарк «Ветерок»{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-key"></i> Выдача автомобиля</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-truck"></i> Начать поездку
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="mt-3">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle"></i> Начать поездку
+                        </button>
+                        <a href="{% url 'trip_list' %}" class="btn btn-secondary">
+                            <i class="bi bi-x-circle"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-info-circle"></i> Инструкция
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Выберите <strong>свободный</strong> автомобиль из списка</li>
+                    <li>Выберите водителя</li>
+                    <li>Введите текущий пробег автомобиля</li>
+                    <li>Нажмите «Начать поездку»</li>
+                </ol>
+                <p class="text-muted small">После начала поездки статус автомобиля автоматически изменится на «В рейсе».</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

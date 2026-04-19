@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}
+    {% if form.instance.pk %}
+        Редактирование автомобиля — Автопарк «Ветерок»
+    {% else %}
+        Новый автомобиль — Автопарк «Ветерок»
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>
+        {% if form.instance.pk %}
+            <i class="bi bi-pencil-square"></i> Редактирование автомобиля
+        {% else %}
+            <i class="bi bi-plus-circle"></i> Добавление нового автомобиля
+        {% endif %}
+    </h1>
+    <a href="{% url 'car_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> К списку
+    </a>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                {% if form.instance.pk %}
+                    <i class="bi bi-pencil"></i> Редактирование данных
+                {% else %}
+                    <i class="bi bi-plus-circle"></i> Заполните информацию об автомобиле
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <form method="post" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.brand_model|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.license_plate|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            {{ form.status|as_crispy_field }}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            {{ form.mileage|as_crispy_field }}
+                        </div>
+                    </div>
+
+                    <div class="mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="bi bi-check-circle"></i> 
+                            {% if form.instance.pk %}
+                                Сохранить изменения
+                            {% else %}
+                                Добавить автомобиль
+                            {% endif %}
+                        </button>
+                        <a href="{% url 'car_list' %}" class="btn btn-secondary btn-lg">
+                            <i class="bi bi-x-circle"></i> Отмена
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-info-circle"></i> Подсказки
+            </div>
+            <div class="card-body">
+                <h6>Статусы автомобиля:</h6>
+                <ul class="list-unstyled">
+                    <li class="mb-2">
+                        <span class="badge bg-success">Свободна</span> — 
+                        автомобиль доступен для выдачи
+                    </li>
+                    <li class="mb-2">
+                        <span class="badge bg-warning">В рейсе</span> — 
+                        автомобиль находится в поездке
+                    </li>
+                    <li class="mb-2">
+                        <span class="badge bg-secondary">Ремонт</span> — 
+                        автомобиль на техническом обслуживании
+                    </li>
+                </ul>
+                <hr>
+                <h6>Примечания:</h6>
+                <ul>
+                    <li>Госномер должен быть уникальным</li>
+                    <li>Пробег указывается в километрах</li>
+                    <li>Начальный пробег можно указать 0 для новых авто</li>
+                </ul>
+            </div>
+        </div>
+
+        {% if form.instance.pk %}
+        <div class="card mt-3">
+            <div class="card-header bg-warning">
+                <i class="bi bi-exclamation-triangle"></i> Внимание
+            </div>
+            <div class="card-body">
+                <p class="mb-0">Изменение статуса автомобиля вручную может повлиять на работу системы. 
+                Обычно статус меняется автоматически при выдаче и возврате автомобиля.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Автоматическая маска для госномера (опционально)
+    document.addEventListener('DOMContentLoaded', function() {
+        const licenseInput = document.getElementById('id_license_plate');
+        if (licenseInput) {
+            licenseInput.addEventListener('input', function(e) {
+                this.value = this.value.toUpperCase();
+            });
+        }
+        
+        // Валидация пробега
+        const mileageInput = document.getElementById('id_mileage');
+        if (mileageInput) {
+            mileageInput.addEventListener('change', function(e) {
+                if (this.value < 0) {
+                    alert('Пробег не может быть отрицательным!');
+                    this.value = 0;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}
