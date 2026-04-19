@@ -1,39 +1,124 @@
 {% extends 'base.html' %}
-{% block title %}Поездка — Автопарк «Ветерок»{% endblock %}
+{% block title %}Поездка #{{ trip.id }} — Автопарк «Ветерок»{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-journal-text"></i> Детали поездки</h1>
+    <h1><i class="bi bi-journal-text"></i> Детали поездки #{{ trip.id }}</h1>
     <div>
-        {% if trip.is_active and user.profile.is_dispatcher %}
-        <a href="{% url 'trip_close' trip.pk %}" class="btn btn-success"><i class="bi bi-check-circle"></i> Завершить</a>
-        {% endif %}
-        <a href="{% url 'trip_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> К журналу</a>
+        <a href="{% url 'trip_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> К журналу
+        </a>
     </div>
 </div>
 
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">Основная информация</div>
+            <div class="card-header bg-primary text-white">
+                <i class="bi bi-info-circle"></i> Основная информация
+            </div>
             <div class="card-body">
                 <table class="table table-borderless">
-                    <tr><th>Автомобиль:</th><td><a href="{% url 'car_detail' trip.car.pk %}">{{ trip.car.brand_model }} ({{ trip.car.license_plate }})</a></td></tr>
-                    <tr><th>Водитель:</th><td>{{ trip.driver.name }}</td></tr>
-                    <tr><th>Статус:</th><td>{% if trip.is_active %}<span class="badge bg-warning">Активная</span>{% else %}<span class="badge bg-success">Завершена</span>{% endif %}</td></tr>
+                    <tr>
+                        <th width="200">Статус:</th>
+                        <td>
+                            {% if trip.is_waiting %}
+                                <span class="badge bg-secondary">Ожидает начала</span>
+                            {% elif trip.is_active %}
+                                <span class="badge bg-warning">В рейсе</span>
+                            {% else %}
+                                <span class="badge bg-success">Завершена</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Автомобиль:</th>
+                        <td>
+                            {% if trip.car %}
+                                <a href="{% url 'car_detail' trip.car.pk %}">
+                                    {{ trip.car.brand_model }} ({{ trip.car.license_plate }})
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Не назначен</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Водитель:</th>
+                        <td>
+                            <a href="{% url 'driver_detail' trip.driver.pk %}">
+                                {{ trip.driver.name }}
+                            </a>
+                        </td>
+                    </tr>
+                    {% if trip.request %}
+                    <tr>
+                        <th>Заявка:</th>
+                        <td>#{{ trip.request.id }} от {{ trip.request.created_at|date:"d.m.Y" }}</td>
+                    </tr>
+                    {% endif %}
+                    <tr>
+                        <th>Создал:</th>
+                        <td>{{ trip.created_by.get_full_name|default:trip.created_by.username }}</td>
+                    </tr>
+                    {% if trip.closed_by %}
+                    <tr>
+                        <th>Закрыл:</th>
+                        <td>{{ trip.closed_by.get_full_name|default:trip.closed_by.username }}</td>
+                    </tr>
+                    {% endif %}
                 </table>
             </div>
         </div>
     </div>
+
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header bg-info text-white">Данные пробега</div>
+            <div class="card-header bg-info text-white">
+                <i class="bi bi-speedometer"></i> Данные пробега
+            </div>
             <div class="card-body">
                 <table class="table table-borderless">
-                    <tr><th>Выезд:</th><td>{{ trip.departure_date|date:"d.m.Y H:i" }}</td></tr>
-                    <tr><th>Пробег при выезде:</th><td>{{ trip.departure_mileage }} км</td></tr>
-                    <tr><th>Возврат:</th><td>{% if trip.return_date %}{{ trip.return_date|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td></tr>
-                    <tr><th>Пробег при возврате:</th><td>{% if trip.return_mileage %}{{ trip.return_mileage }} км{% else %}—{% endif %}</td></tr>
+                    <tr>
+                        <th width="200">Дата и время выезда:</th>
+                        <td>
+                            {% if trip.departure_date %}
+                                {{ trip.departure_date|date:"d.m.Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Пробег при выезде:</th>
+                        <td>
+                            {% if trip.departure_mileage %}
+                                {{ trip.departure_mileage }} км
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Дата и время возврата:</th>
+                        <td>
+                            {% if trip.return_date %}
+                                {{ trip.return_date|date:"d.m.Y H:i" }}
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Пробег при возврате:</th>
+                        <td>
+                            {% if trip.return_mileage %}
+                                {{ trip.return_mileage }} км
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                    </tr>
                 </table>
             </div>
         </div>
@@ -41,6 +126,31 @@
 </div>
 
 {% if trip.distance %}
-<div class="row"><div class="col-12"><div class="card bg-light"><div class="card-body text-center"><h3><i class="bi bi-arrow-left-right"></i> Пройдено: <strong>{{ trip.distance }} км</strong></h3></div></div></div></div>
+<div class="row">
+    <div class="col-12">
+        <div class="card bg-light">
+            <div class="card-body text-center">
+                <h3 class="mb-0">
+                    <i class="bi bi-arrow-left-right"></i> 
+                    Пройденное расстояние: <strong>{{ trip.distance }} км</strong>
+                </h3>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if trip.is_waiting %}
+<div class="alert alert-info mt-3">
+    <i class="bi bi-info-circle"></i>
+    <strong>Поездка ожидает начала.</strong> Водитель должен выбрать автомобиль и начать поездку.
+</div>
+{% endif %}
+
+{% if trip.is_active %}
+<div class="alert alert-warning mt-3">
+    <i class="bi bi-truck"></i>
+    <strong>Поездка активна.</strong> Автомобиль находится в рейсе.
+</div>
 {% endif %}
 {% endblock %}

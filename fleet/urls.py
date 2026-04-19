@@ -9,7 +9,7 @@ urlpatterns = [
     path('profile/', views.ProfileView.as_view(), name='profile'),
     path('profile/edit/', views.ProfileEditView.as_view(), name='profile_edit'),
     
-    # Управление ролями (администратор)
+    # Управление ролями
     path('manage-roles/', views.ManageRolesView.as_view(), name='manage_roles'),
     path('change-role/<int:profile_id>/', views.change_role, name='change_role'),
     
@@ -35,11 +35,14 @@ urlpatterns = [
     path('requests/add/', views.RequestCreateView.as_view(), name='request_add'),
     path('requests/<int:pk>/process/', views.RequestProcessView.as_view(), name='request_process'),
     
-    # Поездки
+    # Мои поездки (для водителя)
+    path('my-trips/', views.MyTripsView.as_view(), name='my_trips'),
+    path('my-trips/<int:trip_id>/start/', views.TripStartView.as_view(), name='trip_start'),
+    path('my-trips/<int:trip_id>/end/', views.TripEndView.as_view(), name='trip_end'),
+    
+    # Все поездки (для диспетчера и руководства)
     path('trips/', views.TripListView.as_view(), name='trip_list'),
-    path('trips/add/', views.TripCreateView.as_view(), name='trip_add'),
     path('trips/<int:pk>/', views.TripDetailView.as_view(), name='trip_detail'),
-    path('trips/<int:pk>/close/', views.TripCloseView.as_view(), name='trip_close'),
     
     # Отчеты
     path('reports/', views.ReportView.as_view(), name='report'),

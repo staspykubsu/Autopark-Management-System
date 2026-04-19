@@ -4,9 +4,6 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="bi bi-journal"></i> Журнал поездок</h1>
-    {% if can_create %}
-    <a href="{% url 'trip_add' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Новая поездка</a>
-    {% endif %}
 </div>
 
 <div class="row mb-3">
@@ -27,34 +24,99 @@
 
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>Автомобиль</th><th>Водитель</th><th>Выезд</th><th>Пробег (выезд)</th><th>Возврат</th><th>Пробег (возврат)</th><th>Пройдено</th><th>Действия</th></tr></thead>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Автомобиль</th>
+                <th>Водитель</th>
+                <th>Выезд</th>
+                <th>Пробег (выезд)</th>
+                <th>Возврат</th>
+                <th>Пробег (возврат)</th>
+                <th>Пройдено</th>
+                <th>Статус</th>
+                <th></th>
+            </tr>
+        </thead>
         <tbody>
             {% for trip in trips %}
             <tr class="{% if trip.is_active %}table-warning{% endif %}">
-                <td>{{ trip.car.license_plate }}<br><small>{{ trip.car.brand_model }}</small></td>
+                <td>#{{ trip.id }}</td>
+                <td>
+                    {% if trip.car %}
+                        {{ trip.car.license_plate }}<br><small>{{ trip.car.brand_model }}</small>
+                    {% else %}
+                        <span class="text-muted">Не назначен</span>
+                    {% endif %}
+                </td>
                 <td>{{ trip.driver.name }}</td>
-                <td>{{ trip.departure_date|date:"d.m.Y H:i" }}</td>
-                <td>{{ trip.departure_mileage }} км</td>
-                <td>{% if trip.return_date %}{{ trip.return_date|date:"d.m.Y H:i" }}{% else %}<span class="text-warning">—</span>{% endif %}</td>
+                <td>{% if trip.departure_date %}{{ trip.departure_date|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td>
+                <td>{% if trip.departure_mileage %}{{ trip.departure_mileage }} км{% else %}—{% endif %}</td>
+                <td>{% if trip.return_date %}{{ trip.return_date|date:"d.m.Y H:i" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
                 <td>{% if trip.return_mileage %}{{ trip.return_mileage }} км{% else %}—{% endif %}</td>
                 <td>{% if trip.distance %}<strong>{{ trip.distance }} км</strong>{% else %}—{% endif %}</td>
                 <td>
-                    <a href="{% url 'trip_detail' trip.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
-                    {% if trip.is_active and user.profile.is_dispatcher %}
-                    <a href="{% url 'trip_close' trip.pk %}" class="btn btn-sm btn-success"><i class="bi bi-check-circle"></i> Завершить</a>
+                    {% if trip.is_waiting %}
+                        <span class="badge bg-secondary">Ожидает</span>
+                    {% elif trip.is_active %}
+                        <span class="badge bg-warning">В рейсе</span>
+                    {% else %}
+                        <span class="badge bg-success">Завершена</span>
                     {% endif %}
                 </td>
+                <td>
+                    <a href="{% url 'trip_detail' trip.pk %}" class="btn btn-sm btn-outline-primary" title="Просмотр">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                </td>
             </tr>
-            {% empty %}<tr><td colspan="8" class="text-center py-4">Нет поездок</td></tr>{% endfor %}
+            {% empty %}
+            <tr>
+                <td colspan="10" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
+                    Нет поездок
+                </td>
+            </tr>
+            {% endfor %}
         </tbody>
     </table>
 </div>
 
 {% if is_paginated %}
-<nav><ul class="pagination justify-content-center">
-    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page=1">&laquo;</a></li>{% endif %}
-    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>{% endif %}
-</ul></nav>
+<nav aria-label="Навигация по страницам">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+        </li>
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
 {% endif %}
 {% endblock %}

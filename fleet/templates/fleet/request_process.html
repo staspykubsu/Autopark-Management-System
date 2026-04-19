@@ -4,37 +4,68 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1><i class="bi bi-file-check"></i> Обработка заявки</h1>
+    <h1><i class="bi bi-file-check"></i> Обработка заявки №{{ request_obj.pk }}</h1>
     <a href="{% url 'request_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> К списку</a>
 </div>
 
 <div class="row">
     <div class="col-md-8">
         <div class="card mb-3">
-            <div class="card-header bg-info text-white">Информация о заявке</div>
+            <div class="card-header bg-info text-white"><i class="bi bi-info-circle"></i> Информация о заявке</div>
             <div class="card-body">
                 <table class="table table-borderless">
-                    <tr><th>Водитель:</th><td><strong>{{ request_obj.driver.name }}</strong></td></tr>
-                    <tr><th>Дата поездки:</th><td>{{ request_obj.trip_date|date:"d.m.Y" }}</td></tr>
+                    <tr><th width="200">Водитель:</th><td><strong>{{ request_obj.driver.name }}</strong></td></tr>
+                    <tr><th>Номер прав:</th><td>{{ request_obj.driver.license_number|default:"—" }}</td></tr>
+                    <tr><th>Телефон:</th><td>{{ request_obj.driver.phone|default:"—" }}</td></tr>
+                    <tr><th>Дата поездки:</th><td><strong>{{ request_obj.trip_date|date:"d.m.Y" }}</strong></td></tr>
                     <tr><th>Создана:</th><td>{{ request_obj.created_at|date:"d.m.Y H:i" }}</td></tr>
+                    <tr><th>Текущий статус:</th>
+                        <td>
+                            {% if request_obj.status == 'new' %}<span class="badge bg-info">Новая</span>
+                            {% elif request_obj.status == 'approved' %}<span class="badge bg-success">Одобрена</span>
+                            {% else %}<span class="badge bg-danger">Отклонена</span>{% endif %}
+                        </td>
+                    </tr>
                 </table>
             </div>
         </div>
+
         <div class="card">
-            <div class="card-header bg-primary text-white">Изменить статус</div>
+            <div class="card-header bg-primary text-white"><i class="bi bi-pencil"></i> Изменить статус</div>
             <div class="card-body">
-                <form method="post">{% csrf_token %}{{ form|crispy }}
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="alert alert-info mt-3">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Внимание:</strong> При одобрении заявки автоматически создается поездка, которую водитель сможет начать самостоятельно.
+                    </div>
                     <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Сохранить</button>
                     <a href="{% url 'request_list' %}" class="btn btn-secondary">Отмена</a>
                 </form>
             </div>
         </div>
     </div>
+    
     <div class="col-md-4">
-        <div class="card"><div class="card-header bg-success text-white">Рекомендации</div><div class="card-body">
-            <h6>При одобрении:</h6><ul><li>Проверьте наличие свободных авто</li></ul>
-            <h6>При отказе:</h6><ul><li>Укажите причину</li></ul>
-        </div></div>
+        <div class="card">
+            <div class="card-header bg-success text-white"><i class="bi bi-lightbulb"></i> Рекомендации</div>
+            <div class="card-body">
+                <h6>При одобрении:</h6>
+                <ul><li>Проверьте наличие свободных автомобилей</li><li>Убедитесь, что у водителя есть действующие права</li></ul>
+                <h6>При отказе:</h6>
+                <ul><li>Обязательно укажите причину отказа</li></ul>
+            </div>
+        </div>
+        
+        <div class="card mt-3">
+            <div class="card-header bg-info text-white"><i class="bi bi-car-front"></i> Свободные автомобили</div>
+            <div class="card-body">
+                {% with free_cars=free_cars|default:0 %}
+                <p>Сейчас свободно: <strong>{{ free_cars }}</strong> автомобилей</p>
+                {% endwith %}
+            </div>
+        </div>
     </div>
 </div>
 
@@ -42,9 +73,15 @@
 document.addEventListener('DOMContentLoaded', function() {
     const statusSelect = document.getElementById('id_status');
     const reasonField = document.getElementById('div_id_rejection_reason');
-    function toggleReason() { reasonField.style.display = statusSelect.value === 'rejected' ? 'block' : 'none'; }
-    statusSelect.addEventListener('change', toggleReason);
-    toggleReason();
+    function toggleReason() { 
+        if (reasonField) {
+            reasonField.style.display = statusSelect.value === 'rejected' ? 'block' : 'none'; 
+        }
+    }
+    if (statusSelect) {
+        statusSelect.addEventListener('change', toggleReason);
+        toggleReason();
+    }
 });
 </script>
 {% endblock %}

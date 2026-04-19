@@ -5,7 +5,9 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="bi bi-car-front"></i> Автомобили</h1>
     {% if can_edit %}
-    <a href="{% url 'car_add' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Добавить автомобиль</a>
+    <a href="{% url 'car_add' %}" class="btn btn-success">
+        <i class="bi bi-plus-circle"></i> Добавить автомобиль
+    </a>
     {% endif %}
 </div>
 
@@ -20,27 +22,93 @@
 
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>Марка и модель</th><th>Госномер</th><th>Статус</th><th>Пробег</th><th>Действия</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Марка и модель</th>
+                <th>Госномер</th>
+                <th>Статус</th>
+                <th>Пробег</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
         <tbody>
             {% for car in cars %}
             <tr>
-                <td><a href="{% url 'car_detail' car.pk %}">{{ car.brand_model }}</a></td>
+                <td>
+                    <a href="{% url 'car_detail' car.pk %}">{{ car.brand_model }}</a>
+                </td>
                 <td>{{ car.license_plate }}</td>
-                <td>{% if car.status == 'free' %}<span class="badge bg-success">Свободна</span>{% elif car.status == 'trip' %}<span class="badge bg-warning">В рейсе</span>{% else %}<span class="badge bg-secondary">Ремонт</span>{% endif %}</td>
+                <td>
+                    {% if car.status == 'free' %}
+                        <span class="badge bg-success">Свободна</span>
+                    {% elif car.status == 'trip' %}
+                        <span class="badge bg-warning">В рейсе</span>
+                    {% else %}
+                        <span class="badge bg-secondary">Ремонт</span>
+                    {% endif %}
+                </td>
                 <td>{{ car.mileage }} км</td>
                 <td>
-                    <a href="{% url 'car_detail' car.pk %}" class="btn btn-sm btn-outline-primary"><i class="bi bi-eye"></i></a>
+                    <a href="{% url 'car_detail' car.pk %}" class="btn btn-sm btn-outline-primary" title="Просмотр">
+                        <i class="bi bi-eye"></i>
+                    </a>
                     {% if can_edit %}
-                    <a href="{% url 'car_edit' car.pk %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-pencil"></i></a>
-                    <a href="{% url 'car_delete' car.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
-                    {% endif %}
-                    {% if car.status == 'free' and user.profile.is_dispatcher %}
-                    <a href="{% url 'trip_add' %}?car={{ car.pk }}" class="btn btn-sm btn-success"><i class="bi bi-key"></i> Выдать</a>
+                        <a href="{% url 'car_edit' car.pk %}" class="btn btn-sm btn-outline-secondary" title="Редактировать">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <a href="{% url 'car_delete' car.pk %}" class="btn btn-sm btn-outline-danger" title="Удалить">
+                            <i class="bi bi-trash"></i>
+                        </a>
                     {% endif %}
                 </td>
             </tr>
-            {% empty %}<tr><td colspan="5" class="text-center py-4">Нет автомобилей</td></tr>{% endfor %}
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
+                    Нет автомобилей
+                </td>
+            </tr>
+            {% endfor %}
         </tbody>
     </table>
 </div>
+
+{% if is_paginated %}
+<nav aria-label="Навигация по страницам">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+        </li>
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
 {% endblock %}

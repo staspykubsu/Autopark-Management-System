@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.utils import timezone
 from .models import Car, Driver, Request, Trip, UserProfile
 
 
@@ -21,9 +22,7 @@ class UserRegistrationForm(UserCreationForm):
     class Meta:
         model = User
         fields = ['username', 'email', 'first_name', 'last_name', 'password1', 'password2']
-        widgets = {
-            'username': forms.TextInput(attrs={'class': 'form-control'}),
-        }
+        widgets = {'username': forms.TextInput(attrs={'class': 'form-control'})}
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -54,8 +53,6 @@ class UserRegistrationForm(UserCreationForm):
 
 
 class UserProfileForm(forms.ModelForm):
-    """Форма редактирования профиля (без возможности смены роли)"""
-    
     first_name = forms.CharField(max_length=30, required=True, label='Имя')
     last_name = forms.CharField(max_length=30, required=True, label='Фамилия')
     email = forms.EmailField(required=True, label='Email')
@@ -113,7 +110,11 @@ class RequestForm(forms.ModelForm):
         model = Request
         fields = ['trip_date']
         widgets = {
-            'trip_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'trip_date': forms.DateInput(attrs={
+                'class': 'form-control', 
+                'type': 'date',
+                'min': timezone.now().date().isoformat()
+            }),
         }
 
 
@@ -127,28 +128,32 @@ class RequestProcessForm(forms.ModelForm):
         }
 
 
-class TripStartForm(forms.ModelForm):
-    class Meta:
-        model = Trip
-        fields = ['car', 'driver', 'departure_mileage', 'request']
-        widgets = {
-            'car': forms.Select(attrs={'class': 'form-select'}),
-            'driver': forms.Select(attrs={'class': 'form-select'}),
-            'departure_mileage': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'}),
-            'request': forms.Select(attrs={'class': 'form-select'}),
-        }
-
+class TripStartForm(forms.Form):
+    """Форма для начала поездки водителем (только выбор автомобиля)"""
+    car = forms.ModelChoiceField(
+        queryset=Car.objects.filter(status='free'),
+        label='Автомобиль',
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    
     def __init__(self, *args, **kwargs):
+        self.request_obj = kwargs.pop('request_obj', None)
         super().__init__(*args, **kwargs)
-        self.fields['car'].queryset = Car.objects.filter(status='free')
-        self.fields['request'].required = False
+    
+    def clean_car(self):
+        car = self.cleaned_data['car']
+        if car.status != 'free':
+            raise forms.ValidationError('Автомобиль недоступен')
+        return car
 
 
-class TripEndForm(forms.ModelForm):
-    class Meta:
-        model = Trip
-        fields = ['return_mileage']
-        widgets = {'return_mileage': forms.NumberInput(attrs={'class': 'form-control', 'min': '0'})}
+class TripEndForm(forms.Form):
+    """Форма для завершения поездки водителем"""
+    return_mileage = forms.IntegerField(
+        label='Пробег при возврате',
+        min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
 
 
 class ReportFilterForm(forms.Form):

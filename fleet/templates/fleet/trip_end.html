@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% block title %}Завершить поездку — Автопарк «Ветерок»{% endblock %}
+
+{% block content %}
+<h1 class="mb-4"><i class="bi bi-stop-circle"></i> Завершить поездку</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-danger text-white"><i class="bi bi-flag-checkered"></i> Возврат автомобиля</div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h5>Данные поездки:</h5>
+                    <p><strong>Автомобиль:</strong> {{ trip.car.brand_model }} ({{ trip.car.license_plate }})</p>
+                    <p><strong>Начало:</strong> {{ trip.departure_date|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Пробег при выезде:</strong> {{ trip.departure_mileage }} км</p>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <p class="text-danger"><strong>Внимание!</strong> Пробег при возврате должен быть больше {{ trip.departure_mileage }} км.</p>
+                    <button type="submit" class="btn btn-danger"><i class="bi bi-stop-circle"></i> Завершить поездку</button>
+                    <a href="{% url 'my_trips' %}" class="btn btn-secondary">Отмена</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Расчет</div>
+            <div class="card-body">
+                <p>После ввода пробега система автоматически:</p>
+                <ul>
+                    <li>Рассчитает пройденное расстояние</li>
+                    <li>Обновит общий пробег автомобиля</li>
+                    <li>Изменит статус автомобиля на «Свободна»</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

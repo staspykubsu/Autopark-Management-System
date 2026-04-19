@@ -40,6 +40,7 @@
             </div>
         </div>
     </div>
+    
     <div class="row">
         <div class="col-md-6">
             <div class="card">
@@ -78,6 +79,9 @@
                     <p><strong>Автомобиль:</strong> {{ active_trip.car.brand_model }} ({{ active_trip.car.license_plate }})</p>
                     <p><strong>Начало:</strong> {{ active_trip.departure_date|date:"d.m.Y H:i" }}</p>
                     <p><strong>Пробег при выезде:</strong> {{ active_trip.departure_mileage }} км</p>
+                    <a href="{% url 'trip_end' active_trip.id %}" class="btn btn-danger">
+                        <i class="bi bi-stop-circle"></i> Завершить поездку
+                    </a>
                 </div>
             </div>
         </div>
@@ -87,52 +91,185 @@
 {% elif user.profile.is_dispatcher %}
     <!-- Дашборд диспетчера -->
     <div class="row g-4 mb-4">
-        <div class="col-md-3"><div class="card text-white bg-danger"><div class="card-body"><h5>Новых заявок</h5><p class="display-4">{{ pending_requests }}</p></div></div></div>
-        <div class="col-md-3"><div class="card text-white bg-warning"><div class="card-body"><h5>Активных поездок</h5><p class="display-4">{{ active_trips_count }}</p></div></div></div>
-        <div class="col-md-3"><div class="card text-white bg-success"><div class="card-body"><h5>Свободных машин</h5><p class="display-4">{{ free_cars }}</p></div></div></div>
-        <div class="col-md-3"><div class="card text-white bg-primary"><div class="card-body"><h5>Всего машин</h5><p class="display-4">{{ total_cars }}</p></div></div></div>
-    </div>
-    <div class="card">
-        <div class="card-header"><i class="bi bi-file-text"></i> Ожидают обработки</div>
-        <div class="card-body p-0">
-            {% if recent_requests %}
-                <table class="table table-hover mb-0">
-                    <thead><tr><th>Водитель</th><th>Дата поездки</th><th>Создана</th><th></th></tr></thead>
-                    <tbody>
-                        {% for req in recent_requests %}
-                        <tr>
-                            <td>{{ req.driver.name }}</td>
-                            <td>{{ req.trip_date|date:"d.m.Y" }}</td>
-                            <td>{{ req.created_at|date:"d.m.Y H:i" }}</td>
-                            <td><a href="{% url 'request_process' req.pk %}" class="btn btn-sm btn-primary">Обработать</a></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endif %}
+        <div class="col-md-3">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h5 class="card-title">Новых заявок</h5>
+                    <p class="display-4">{{ pending_requests }}</p>
+                </div>
+            </div>
         </div>
-        <div class="card-footer">
-            <a href="{% url 'request_list' %}" class="btn btn-primary">Все заявки</a>
-            <a href="{% url 'trip_add' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Новая поездка</a>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Активных поездок</h5>
+                    <p class="display-4">{{ active_trips_count }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Свободных машин</h5>
+                    <p class="display-4">{{ free_cars }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Всего машин</h5>
+                    <p class="display-4">{{ total_cars }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-file-text"></i> Ожидают обработки
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_requests %}
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Водитель</th>
+                                    <th>Дата поездки</th>
+                                    <th>Создана</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for req in recent_requests %}
+                                <tr>
+                                    <td>{{ req.driver.name }}</td>
+                                    <td>{{ req.trip_date|date:"d.m.Y" }}</td>
+                                    <td>{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'request_process' req.pk %}" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-check-circle"></i> Обработать
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-center py-4 text-muted">Нет новых заявок</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'request_list' %}" class="btn btn-primary">
+                        <i class="bi bi-list"></i> Все заявки
+                    </a>
+                    <a href="{% url 'trip_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-journal"></i> Журнал поездок
+                    </a>
+                </div>
+            </div>
         </div>
     </div>
 
 {% elif user.profile.is_manager %}
     <!-- Дашборд руководства -->
     <div class="row g-4 mb-4">
-        <div class="col-md-2"><div class="card text-white bg-primary"><div class="card-body"><h6>Всего машин</h6><p class="display-6">{{ total_cars }}</p></div></div></div>
-        <div class="col-md-2"><div class="card text-white bg-success"><div class="card-body"><h6>Свободных</h6><p class="display-6">{{ free_cars }}</p></div></div></div>
-        <div class="col-md-2"><div class="card text-white bg-warning"><div class="card-body"><h6>В рейсе</h6><p class="display-6">{{ cars_in_trip }}</p></div></div></div>
-        <div class="col-md-2"><div class="card text-white bg-secondary"><div class="card-body"><h6>В ремонте</h6><p class="display-6">{{ cars_in_repair }}</p></div></div></div>
-        <div class="col-md-2"><div class="card text-white bg-info"><div class="card-body"><h6>Водителей</h6><p class="display-6">{{ total_drivers }}</p></div></div></div>
-        <div class="col-md-2"><div class="card text-white bg-danger"><div class="card-body"><h6>Заявок</h6><p class="display-6">{{ pending_requests }}</p></div></div></div>
+        <div class="col-md-2">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h6>Всего машин</h6>
+                    <p class="display-6">{{ total_cars }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h6>Свободных</h6>
+                    <p class="display-6">{{ free_cars }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h6>В рейсе</h6>
+                    <p class="display-6">{{ cars_in_trip }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-white bg-secondary">
+                <div class="card-body">
+                    <h6>В ремонте</h6>
+                    <p class="display-6">{{ cars_in_repair }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h6>Водителей</h6>
+                    <p class="display-6">{{ total_drivers }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-white bg-danger">
+                <div class="card-body">
+                    <h6>Заявок</h6>
+                    <p class="display-6">{{ pending_requests }}</p>
+                </div>
+            </div>
+        </div>
     </div>
+    
     <div class="row">
         <div class="col-md-6">
-            <div class="card"><div class="card-header">Статистика за месяц</div><div class="card-body">
-                <p><strong>Поездок:</strong> {{ month_trips_count }}</p>
-                <p><strong>Общий пробег:</strong> {{ month_distance }} км</p>
-            </div></div>
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-bar-chart"></i> Статистика за месяц
+                </div>
+                <div class="card-body">
+                    <p><strong>Поездок:</strong> {{ month_trips_count }}</p>
+                    <p><strong>Общий пробег:</strong> {{ month_distance }} км</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-file-text"></i> Ожидают обработки
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_requests %}
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr><th>Водитель</th><th>Дата</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                {% for req in recent_requests %}
+                                <tr>
+                                    <td>{{ req.driver.name }}</td>
+                                    <td>{{ req.trip_date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        <a href="{% url 'request_process' req.pk %}" class="btn btn-sm btn-primary">
+                                            Обработать
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'request_list' %}" class="btn btn-primary">Все заявки</a>
+                    <a href="{% url 'report' %}" class="btn btn-success">Сформировать отчет</a>
+                </div>
+            </div>
         </div>
     </div>
 {% endif %}

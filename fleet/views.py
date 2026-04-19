@@ -9,6 +9,7 @@ from django.db.models import Sum, Count, Q
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
+from django.core.exceptions import ValidationError
 
 from .models import Car, Driver, Request, Trip, UserProfile
 from .forms import (
@@ -357,22 +358,30 @@ class RequestCreateView(DriverRequiredMixin, CreateView):
     template_name = 'fleet/request_form.html'
     success_url = reverse_lazy('request_list')
     
-    def form_valid(self, form):
-        request_obj = form.save(commit=False)
+    def dispatch(self, request, *args, **kwargs):
+        # Проверяем, может ли водитель создать заявку
         try:
-            request_obj.driver = self.request.user.driver
+            driver = request.user.driver
+            if not driver.can_create_request():
+                if driver.has_active_request():
+                    messages.error(request, 'У вас уже есть активная заявка. Дождитесь её обработки.')
+                elif driver.has_pending_trip():
+                    messages.error(request, 'У вас есть одобренная заявка. Сначала совершите поездку.')
+                elif driver.has_active_trip():
+                    messages.error(request, 'У вас есть активная поездка. Завершите её перед созданием новой заявки.')
+                return redirect('request_list')
         except Driver.DoesNotExist:
-            messages.error(self.request, 'У вас нет профиля водителя')
+            messages.error(request, 'У вас нет профиля водителя')
             return redirect('profile')
         
+        return super().dispatch(request, *args, **kwargs)
+    
+    def form_valid(self, form):
+        request_obj = form.save(commit=False)
+        request_obj.driver = self.request.user.driver
         request_obj.save()
         messages.success(self.request, 'Заявка успешно создана и отправлена на рассмотрение')
         return super().form_valid(form)
-    
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        form.fields['trip_date'].widget.attrs['min'] = timezone.now().date().isoformat()
-        return form
 
 
 class RequestProcessView(DispatcherRequiredMixin, UpdateView):
@@ -382,6 +391,13 @@ class RequestProcessView(DispatcherRequiredMixin, UpdateView):
     template_name = 'fleet/request_process.html'
     success_url = reverse_lazy('request_list')
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['request_obj'] = self.object
+        # Добавляем количество свободных автомобилей
+        context['free_cars'] = Car.objects.filter(status='free').count()
+        return context
+    
     def form_valid(self, form):
         request_obj = form.save(commit=False)
         request_obj.processed_by = self.request.user
@@ -389,7 +405,17 @@ class RequestProcessView(DispatcherRequiredMixin, UpdateView):
         request_obj.save()
         
         if request_obj.status == 'approved':
-            messages.success(self.request, f'Заявка №{request_obj.pk} одобрена')
+            # Создаем поездку БЕЗ автомобиля (водитель выберет сам)
+            Trip.objects.create(
+                request=request_obj,
+                driver=request_obj.driver,
+                created_by=self.request.user
+            )
+            messages.success(
+                self.request, 
+                f'Заявка №{request_obj.pk} одобрена. Поездка создана. '
+                f'Водитель может начать поездку в разделе «Мои поездки».'
+            )
         else:
             messages.warning(self.request, f'Заявка №{request_obj.pk} отклонена')
         
@@ -397,43 +423,6 @@ class RequestProcessView(DispatcherRequiredMixin, UpdateView):
 
 
 # ========== ПОЕЗДКИ ==========
-
-class TripListView(LoginRequiredMixin, ListView):
-    model = Trip
-    template_name = 'fleet/trip_list.html'
-    context_object_name = 'trips'
-    paginate_by = 20
-    
-    def get_queryset(self):
-        user = self.request.user
-        queryset = super().get_queryset()
-        
-        if user.profile.is_driver():
-            try:
-                queryset = queryset.filter(driver=user.driver)
-            except Driver.DoesNotExist:
-                queryset = queryset.none()
-        
-        status = self.request.GET.get('status')
-        if status == 'active':
-            queryset = queryset.filter(return_date__isnull=True)
-        elif status == 'completed':
-            queryset = queryset.filter(return_date__isnull=False)
-        
-        search = self.request.GET.get('search')
-        if search:
-            queryset = queryset.filter(
-                Q(car__license_plate__icontains=search) |
-                Q(driver__name__icontains=search)
-            )
-        
-        return queryset.select_related('car', 'driver')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['active_trips_count'] = Trip.objects.filter(return_date__isnull=True).count()
-        context['can_create'] = self.request.user.profile.is_dispatcher()
-        return context
 
 
 class TripCreateView(DispatcherRequiredMixin, CreateView):
@@ -548,3 +537,137 @@ class ReportView(ManagerRequiredMixin, View):
             return render(request, self.template_name, context)
         
         return render(request, self.template_name, {'form': form})
+    
+class MyTripsView(LoginRequiredMixin, ListView):
+    """Мои поездки (для водителя)"""
+    model = Trip
+    template_name = 'fleet/my_trips.html'
+    context_object_name = 'trips'
+    
+    def get_queryset(self):
+        try:
+            return Trip.objects.filter(driver=self.request.user.driver).order_by('-departure_date')
+        except Driver.DoesNotExist:
+            return Trip.objects.none()
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        try:
+            driver = self.request.user.driver
+            context['active_trip'] = driver.trips.filter(return_date__isnull=True, departure_date__isnull=False).first()
+            context['waiting_trip'] = driver.trips.filter(departure_date__isnull=True).first()
+            context['can_create_request'] = driver.can_create_request()
+        except Driver.DoesNotExist:
+            pass
+        return context
+
+class TripStartView(DriverRequiredMixin, View):
+    """Начало поездки водителем"""
+    
+    def get(self, request, trip_id):
+        try:
+            trip = Trip.objects.get(id=trip_id, driver=request.user.driver)
+        except Trip.DoesNotExist:
+            messages.error(request, 'Поездка не найдена')
+            return redirect('my_trips')
+        
+        if not trip.is_waiting():
+            messages.error(request, 'Эту поездку нельзя начать')
+            return redirect('my_trips')
+        
+        form = TripStartForm()
+        return render(request, 'fleet/trip_start.html', {'form': form, 'trip': trip})
+    
+    def post(self, request, trip_id):
+        try:
+            trip = Trip.objects.get(id=trip_id, driver=request.user.driver)
+        except Trip.DoesNotExist:
+            messages.error(request, 'Поездка не найдена')
+            return redirect('my_trips')
+        
+        if not trip.is_waiting():
+            messages.error(request, 'Эту поездку нельзя начать')
+            return redirect('my_trips')
+        
+        form = TripStartForm(request.POST)
+        if form.is_valid():
+            car = form.cleaned_data['car']
+            
+            try:
+                trip.start_trip(car)
+                trip.created_by = request.user
+                trip.save()
+                messages.success(request, f'Поездка начата. Автомобиль {car.license_plate}')
+            except ValidationError as e:
+                messages.error(request, str(e))
+                return render(request, 'fleet/trip_start.html', {'form': form, 'trip': trip})
+            
+            return redirect('my_trips')
+        
+        return render(request, 'fleet/trip_start.html', {'form': form, 'trip': trip})
+
+class TripEndView(DriverRequiredMixin, View):
+    """Завершение поездки водителем"""
+    
+    def get(self, request, trip_id):
+        trip = get_object_or_404(Trip, id=trip_id, driver=request.user.driver)
+        
+        if not trip.is_active():
+            messages.error(request, 'Эту поездку нельзя завершить')
+            return redirect('my_trips')
+        
+        form = TripEndForm()
+        return render(request, 'fleet/trip_end.html', {'form': form, 'trip': trip})
+    
+    def post(self, request, trip_id):
+        trip = get_object_or_404(Trip, id=trip_id, driver=request.user.driver)
+        
+        if not trip.is_active():
+            messages.error(request, 'Эту поездку нельзя завершить')
+            return redirect('my_trips')
+        
+        form = TripEndForm(request.POST)
+        if form.is_valid():
+            return_mileage = form.cleaned_data['return_mileage']
+            
+            if return_mileage < trip.departure_mileage:
+                messages.error(request, 'Пробег при возврате не может быть меньше пробега при выезде')
+                return render(request, 'fleet/trip_end.html', {'form': form, 'trip': trip})
+            
+            trip.end_trip(return_mileage)
+            trip.closed_by = request.user
+            trip.save()
+            
+            messages.success(request, f'Поездка завершена. Пройдено {trip.distance()} км')
+            return redirect('my_trips')
+        
+        return render(request, 'fleet/trip_end.html', {'form': form, 'trip': trip})
+
+class TripListView(LoginRequiredMixin, ListView):
+    model = Trip
+    template_name = 'fleet/trip_list.html'
+    context_object_name = 'trips'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().exclude(departure_date__isnull=True)
+        
+        status = self.request.GET.get('status')
+        if status == 'active':
+            queryset = queryset.filter(return_date__isnull=True)
+        elif status == 'completed':
+            queryset = queryset.filter(return_date__isnull=False)
+        
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(car__license_plate__icontains=search) |
+                Q(driver__name__icontains=search)
+            )
+        
+        return queryset.select_related('car', 'driver')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['active_trips_count'] = Trip.objects.filter(return_date__isnull=True, departure_date__isnull=False).count()
+        return context

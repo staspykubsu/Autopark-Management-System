@@ -3,6 +3,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 
 
 class UserProfile(models.Model):
@@ -102,6 +103,27 @@ class Driver(models.Model):
 
     def __str__(self):
         return self.name
+    
+    def has_active_request(self):
+        """Проверяет, есть ли у водителя активная (новая или одобренная) заявка"""
+        return self.requests.filter(status__in=['new', 'approved']).exists()
+    
+    def has_pending_trip(self):
+        """Проверяет, есть ли у водителя заявка, по которой еще не совершена поездка"""
+        # Находим одобренные заявки, по которым еще нет поездки
+        approved_requests = self.requests.filter(status='approved')
+        for req in approved_requests:
+            if not hasattr(req, 'trip') or req.trip is None:
+                return True
+        return False
+    
+    def has_active_trip(self):
+        """Проверяет, есть ли у водителя активная поездка"""
+        return self.trips.filter(return_date__isnull=True).exists()
+    
+    def can_create_request(self):
+        """Может ли водитель создать новую заявку"""
+        return not self.has_active_request() and not self.has_pending_trip() and not self.has_active_trip()
 
 
 class Request(models.Model):
@@ -140,6 +162,29 @@ class Request(models.Model):
 
     def __str__(self):
         return f'{self.driver.name} - {self.trip_date}'
+    
+    def clean(self):
+        # Проверка, что дата поездки не в прошлом
+        if self.trip_date and self.trip_date < timezone.now().date():
+            raise ValidationError({'trip_date': 'Дата поездки не может быть в прошлом'})
+        
+        # Проверки для нового объекта (еще не сохранен в БД)
+        if not self.pk:
+            # Проверка на наличие driver_id (если driver уже назначен)
+            if hasattr(self, 'driver_id') and self.driver_id:
+                try:
+                    driver = Driver.objects.get(id=self.driver_id)
+                    if driver.has_active_request():
+                        raise ValidationError('У вас уже есть активная заявка (новая или одобренная)')
+                    if driver.has_pending_trip():
+                        raise ValidationError('У вас есть одобренная заявка, по которой еще не совершена поездка')
+                    if driver.has_active_trip():
+                        raise ValidationError('У вас есть активная поездка. Завершите её перед созданием новой заявки')
+                except Driver.DoesNotExist:
+                    pass
+        else:
+            # Для существующего объекта - дополнительные проверки при изменении статуса
+            pass
 
 
 class Trip(models.Model):
@@ -147,9 +192,11 @@ class Trip(models.Model):
     
     car = models.ForeignKey(
         Car,
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,  # Изменено с CASCADE на SET_NULL
         verbose_name='Автомобиль',
-        related_name='trips'
+        related_name='trips',
+        null=True,  # Разрешаем NULL
+        blank=True  # Разрешаем пустое значение в формах
     )
     driver = models.ForeignKey(
         Driver,
@@ -166,8 +213,8 @@ class Trip(models.Model):
         related_name='trip'
     )
 
-    departure_date = models.DateTimeField('Дата и время выезда')
-    departure_mileage = models.IntegerField('Пробег при выезде')
+    departure_date = models.DateTimeField('Дата и время выезда', null=True, blank=True)
+    departure_mileage = models.IntegerField('Пробег при выезде', null=True, blank=True)
     return_date = models.DateTimeField('Дата и время возврата', null=True, blank=True)
     return_mileage = models.IntegerField('Пробег при возврате', null=True, blank=True)
     
@@ -193,7 +240,9 @@ class Trip(models.Model):
         ordering = ['-departure_date']
 
     def __str__(self):
-        return f'{self.car} - {self.driver} ({self.departure_date.strftime("%d.%m.%Y %H:%M")})'
+        if self.departure_date:
+            return f'{self.car if self.car else "Без авто"} - {self.driver} ({self.departure_date.strftime("%d.%m.%Y %H:%M")})'
+        return f'Заявка #{self.request.pk if self.request else "?"} - {self.driver} (ожидает начала)'
 
     def clean(self):
         if self.return_mileage and self.departure_mileage:
@@ -208,15 +257,38 @@ class Trip(models.Model):
         return None
 
     def is_active(self):
-        return self.return_date is None
-
-    def save(self, *args, **kwargs):
-        is_new = self.pk is None
-        if not is_new:
-            old_trip = Trip.objects.get(pk=self.pk)
-            if old_trip.return_mileage is None and self.return_mileage is not None:
-                distance = self.return_mileage - self.departure_mileage
-                self.car.mileage += distance
-                self.car.status = 'free'
-                self.car.save()
-        super().save(*args, **kwargs)
+        return self.departure_date is not None and self.return_date is None
+    
+    def is_waiting(self):
+        return self.departure_date is None
+    
+    def start_trip(self, car):
+        """Начать поездку (вызывается водителем)"""
+        if self.departure_date is not None:
+            raise ValidationError('Поездка уже начата')
+        if car.status != 'free':
+            raise ValidationError('Автомобиль недоступен')
+        
+        self.car = car
+        self.departure_date = timezone.now()
+        self.departure_mileage = car.mileage
+        car.status = 'trip'
+        car.save()
+        self.save()
+    
+    def end_trip(self, return_mileage):
+        """Завершить поездку (вызывается водителем)"""
+        if self.departure_date is None:
+            raise ValidationError('Поездка еще не начата')
+        if self.return_date is not None:
+            raise ValidationError('Поездка уже завершена')
+        if return_mileage < self.departure_mileage:
+            raise ValidationError('Пробег при возврате не может быть меньше пробега при выезде')
+        
+        self.return_date = timezone.now()
+        self.return_mileage = return_mileage
+        distance = return_mileage - self.departure_mileage
+        self.car.mileage += distance
+        self.car.status = 'free'
+        self.car.save()
+        self.save()
