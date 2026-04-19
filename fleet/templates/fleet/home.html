@@ -4,94 +4,136 @@
 {% block content %}
 <h1 class="mb-4"><i class="bi bi-speedometer2"></i> Панель управления</h1>
 
-<div class="row g-4 mb-4">
-    <div class="col-md-3">
-        <div class="card text-white bg-primary">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-car-front"></i> Всего машин</h5>
-                <p class="display-4">{{ total_cars }}</p>
+{% if user.profile.is_driver %}
+    <!-- Дашборд водителя -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-info">
+                <div class="card-body">
+                    <h5 class="card-title">Всего заявок</h5>
+                    <p class="display-4">{{ total_requests|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success">
+                <div class="card-body">
+                    <h5 class="card-title">Одобрено</h5>
+                    <p class="display-4">{{ approved_requests|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-primary">
+                <div class="card-body">
+                    <h5 class="card-title">Всего поездок</h5>
+                    <p class="display-4">{{ total_trips|default:0 }}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-warning">
+                <div class="card-body">
+                    <h5 class="card-title">Активная поездка</h5>
+                    <p class="display-4">{% if active_trip %}1{% else %}0{% endif %}</p>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-success">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-check-circle"></i> Свободных</h5>
-                <p class="display-4">{{ free_cars }}</p>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header"><i class="bi bi-file-text"></i> Мои последние заявки</div>
+                <div class="card-body p-0">
+                    {% if my_requests %}
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Дата</th><th>Статус</th></tr></thead>
+                            <tbody>
+                                {% for req in my_requests %}
+                                <tr>
+                                    <td>{{ req.trip_date|date:"d.m.Y" }}</td>
+                                    <td>
+                                        {% if req.status == 'new' %}<span class="badge bg-info">Новая</span>
+                                        {% elif req.status == 'approved' %}<span class="badge bg-success">Одобрена</span>
+                                        {% else %}<span class="badge bg-danger">Отклонена</span>{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-center py-4 text-muted">Нет заявок</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'request_add' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Создать заявку</a>
+                </div>
             </div>
         </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-warning">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-truck"></i> В рейсе</h5>
-                <p class="display-4">{{ active_trips }}</p>
+        {% if active_trip %}
+        <div class="col-md-6">
+            <div class="card border-warning">
+                <div class="card-header bg-warning"><i class="bi bi-truck"></i> Активная поездка</div>
+                <div class="card-body">
+                    <p><strong>Автомобиль:</strong> {{ active_trip.car.brand_model }} ({{ active_trip.car.license_plate }})</p>
+                    <p><strong>Начало:</strong> {{ active_trip.departure_date|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Пробег при выезде:</strong> {{ active_trip.departure_mileage }} км</p>
+                </div>
             </div>
         </div>
+        {% endif %}
     </div>
-    <div class="col-md-3">
-        <div class="card text-white bg-info">
-            <div class="card-body">
-                <h5 class="card-title"><i class="bi bi-people"></i> Водителей</h5>
-                <p class="display-4">{{ total_drivers }}</p>
-            </div>
-        </div>
-    </div>
-</div>
 
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-clock-history"></i> Последние поездки
-            </div>
-            <div class="card-body p-0">
+{% elif user.profile.is_dispatcher %}
+    <!-- Дашборд диспетчера -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-3"><div class="card text-white bg-danger"><div class="card-body"><h5>Новых заявок</h5><p class="display-4">{{ pending_requests }}</p></div></div></div>
+        <div class="col-md-3"><div class="card text-white bg-warning"><div class="card-body"><h5>Активных поездок</h5><p class="display-4">{{ active_trips_count }}</p></div></div></div>
+        <div class="col-md-3"><div class="card text-white bg-success"><div class="card-body"><h5>Свободных машин</h5><p class="display-4">{{ free_cars }}</p></div></div></div>
+        <div class="col-md-3"><div class="card text-white bg-primary"><div class="card-body"><h5>Всего машин</h5><p class="display-4">{{ total_cars }}</p></div></div></div>
+    </div>
+    <div class="card">
+        <div class="card-header"><i class="bi bi-file-text"></i> Ожидают обработки</div>
+        <div class="card-body p-0">
+            {% if recent_requests %}
                 <table class="table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Автомобиль</th>
-                            <th>Водитель</th>
-                            <th>Дата</th>
-                            <th>Статус</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Водитель</th><th>Дата поездки</th><th>Создана</th><th></th></tr></thead>
                     <tbody>
-                        {% for trip in recent_trips %}
+                        {% for req in recent_requests %}
                         <tr>
-                            <td>{{ trip.car.license_plate }}</td>
-                            <td>{{ trip.driver.name }}</td>
-                            <td>{{ trip.departure_date|date:"d.m.Y H:i" }}</td>
-                            <td>
-                                {% if trip.is_active %}
-                                    <span class="badge bg-warning">В рейсе</span>
-                                {% else %}
-                                    <span class="badge bg-success">Завершена</span>
-                                {% endif %}
-                            </td>
+                            <td>{{ req.driver.name }}</td>
+                            <td>{{ req.trip_date|date:"d.m.Y" }}</td>
+                            <td>{{ req.created_at|date:"d.m.Y H:i" }}</td>
+                            <td><a href="{% url 'request_process' req.pk %}" class="btn btn-sm btn-primary">Обработать</a></td>
                         </tr>
-                        {% empty %}
-                        <tr><td colspan="4" class="text-center py-3">Нет поездок</td></tr>
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
+            {% endif %}
+        </div>
+        <div class="card-footer">
+            <a href="{% url 'request_list' %}" class="btn btn-primary">Все заявки</a>
+            <a href="{% url 'trip_add' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Новая поездка</a>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-file-text"></i> Ожидают обработки
-            </div>
-            <div class="card-body">
-                <p>Новых заявок: <strong>{{ pending_requests }}</strong></p>
-                <a href="{% url 'request_list' %}" class="btn btn-primary">
-                    <i class="bi bi-list"></i> Перейти к заявкам
-                </a>
-                <a href="{% url 'trip_add' %}" class="btn btn-success">
-                    <i class="bi bi-plus-circle"></i> Новая поездка
-                </a>
-            </div>
+
+{% elif user.profile.is_manager %}
+    <!-- Дашборд руководства -->
+    <div class="row g-4 mb-4">
+        <div class="col-md-2"><div class="card text-white bg-primary"><div class="card-body"><h6>Всего машин</h6><p class="display-6">{{ total_cars }}</p></div></div></div>
+        <div class="col-md-2"><div class="card text-white bg-success"><div class="card-body"><h6>Свободных</h6><p class="display-6">{{ free_cars }}</p></div></div></div>
+        <div class="col-md-2"><div class="card text-white bg-warning"><div class="card-body"><h6>В рейсе</h6><p class="display-6">{{ cars_in_trip }}</p></div></div></div>
+        <div class="col-md-2"><div class="card text-white bg-secondary"><div class="card-body"><h6>В ремонте</h6><p class="display-6">{{ cars_in_repair }}</p></div></div></div>
+        <div class="col-md-2"><div class="card text-white bg-info"><div class="card-body"><h6>Водителей</h6><p class="display-6">{{ total_drivers }}</p></div></div></div>
+        <div class="col-md-2"><div class="card text-white bg-danger"><div class="card-body"><h6>Заявок</h6><p class="display-6">{{ pending_requests }}</p></div></div></div>
+    </div>
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card"><div class="card-header">Статистика за месяц</div><div class="card-body">
+                <p><strong>Поездок:</strong> {{ month_trips_count }}</p>
+                <p><strong>Общий пробег:</strong> {{ month_distance }} км</p>
+            </div></div>
         </div>
     </div>
-</div>
+{% endif %}
 {% endblock %}

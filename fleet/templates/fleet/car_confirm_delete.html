@@ -5,36 +5,16 @@
 <div class="row justify-content-center">
     <div class="col-md-6">
         <div class="card border-danger">
-            <div class="card-header bg-danger text-white">
-                <i class="bi bi-exclamation-triangle"></i> Подтверждение удаления
-            </div>
+            <div class="card-header bg-danger text-white"><i class="bi bi-exclamation-triangle"></i> Подтверждение удаления</div>
             <div class="card-body text-center">
                 <i class="bi bi-car-front" style="font-size: 4rem; color: #dc3545;"></i>
-                <h4 class="mt-3">Вы уверены, что хотите удалить автомобиль?</h4>
+                <h4 class="mt-3">Удалить автомобиль?</h4>
                 <p class="lead">{{ car.brand_model }} ({{ car.license_plate }})</p>
-                
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-circle"></i>
-                    <strong>Внимание!</strong> Вместе с автомобилем будут удалены все связанные с ним поездки. 
-                    Это действие нельзя будет отменить.
-                </div>
-
-                {% if car.trips.count > 0 %}
-                <div class="alert alert-info">
-                    С этим автомобилем связано <strong>{{ car.trips.count }}</strong> поездок.
-                </div>
-                {% endif %}
-
+                <div class="alert alert-warning">Вместе с автомобилем будут удалены все связанные поездки!</div>
                 <form method="post">
                     {% csrf_token %}
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-danger btn-lg">
-                            <i class="bi bi-trash"></i> Да, удалить
-                        </button>
-                        <a href="{% url 'car_detail' car.pk %}" class="btn btn-secondary btn-lg">
-                            <i class="bi bi-x-circle"></i> Нет, отменить
-                        </a>
-                    </div>
+                    <button type="submit" class="btn btn-danger btn-lg w-100"><i class="bi bi-trash"></i> Да, удалить</button>
+                    <a href="{% url 'car_detail' car.pk %}" class="btn btn-secondary btn-lg w-100 mt-2">Отмена</a>
                 </form>
             </div>
         </div>

@@ -4,125 +4,47 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>
-        <i class="bi bi-file-check"></i> Обработка заявки
-    </h1>
-    <a href="{% url 'request_list' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> К списку заявок
-    </a>
+    <h1><i class="bi bi-file-check"></i> Обработка заявки</h1>
+    <a href="{% url 'request_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> К списку</a>
 </div>
 
 <div class="row">
     <div class="col-md-8">
         <div class="card mb-3">
-            <div class="card-header bg-info text-white">
-                <i class="bi bi-info-circle"></i> Информация о заявке
-            </div>
+            <div class="card-header bg-info text-white">Информация о заявке</div>
             <div class="card-body">
                 <table class="table table-borderless">
-                    <tr>
-                        <th width="200">Заявитель:</th>
-                        <td><strong>{{ request_obj.requester_name }}</strong></td>
-                    </tr>
-                    <tr>
-                        <th>Дата поездки:</th>
-                        <td>{{ request_obj.trip_date|date:"d.m.Y" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Дата создания:</th>
-                        <td>{{ request_obj.created_at|date:"d.m.Y H:i" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Текущий статус:</th>
-                        <td>
-                            {% if request_obj.status == 'new' %}
-                                <span class="badge bg-info">Новая</span>
-                            {% elif request_obj.status == 'approved' %}
-                                <span class="badge bg-success">Одобрена</span>
-                            {% else %}
-                                <span class="badge bg-danger">Отклонена</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+                    <tr><th>Водитель:</th><td><strong>{{ request_obj.driver.name }}</strong></td></tr>
+                    <tr><th>Дата поездки:</th><td>{{ request_obj.trip_date|date:"d.m.Y" }}</td></tr>
+                    <tr><th>Создана:</th><td>{{ request_obj.created_at|date:"d.m.Y H:i" }}</td></tr>
                 </table>
             </div>
         </div>
-
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <i class="bi bi-pencil"></i> Изменить статус заявки
-            </div>
+            <div class="card-header bg-primary text-white">Изменить статус</div>
             <div class="card-body">
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="bi bi-check-circle"></i> Сохранить
-                        </button>
-                        <a href="{% url 'request_list' %}" class="btn btn-secondary btn-lg">
-                            <i class="bi bi-x-circle"></i> Отмена
-                        </a>
-                    </div>
+                <form method="post">{% csrf_token %}{{ form|crispy }}
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Сохранить</button>
+                    <a href="{% url 'request_list' %}" class="btn btn-secondary">Отмена</a>
                 </form>
             </div>
         </div>
     </div>
-
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-success text-white">
-                <i class="bi bi-lightbulb"></i> Рекомендации
-            </div>
-            <div class="card-body">
-                <h6>При одобрении заявки:</h6>
-                <ul class="small">
-                    <li>Проверьте наличие свободных автомобилей на указанную дату</li>
-                    <li>Убедитесь, что водитель имеет действующие права</li>
-                </ul>
-                
-                <h6>При отклонении заявки:</h6>
-                <ul class="small">
-                    <li>Обязательно укажите причину отказа</li>
-                    <li>По возможности предложите альтернативную дату</li>
-                </ul>
-            </div>
-        </div>
-
-        <div class="card mt-3">
-            <div class="card-header bg-warning">
-                <i class="bi bi-exclamation-triangle"></i> Важно
-            </div>
-            <div class="card-body">
-                <p class="small mb-0">
-                    После одобрения заявки, на её основе можно будет создать поездку. 
-                    Одобренная заявка не может быть отклонена повторно.
-                </p>
-            </div>
-        </div>
+        <div class="card"><div class="card-header bg-success text-white">Рекомендации</div><div class="card-body">
+            <h6>При одобрении:</h6><ul><li>Проверьте наличие свободных авто</li></ul>
+            <h6>При отказе:</h6><ul><li>Укажите причину</li></ul>
+        </div></div>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const statusSelect = document.getElementById('id_status');
-        const reasonField = document.getElementById('div_id_rejection_reason');
-        
-        function toggleReasonField() {
-            if (statusSelect.value === 'rejected') {
-                reasonField.style.display = 'block';
-            } else {
-                reasonField.style.display = 'none';
-            }
-        }
-        
-        if (statusSelect) {
-            statusSelect.addEventListener('change', toggleReasonField);
-            toggleReasonField(); // Initial state
-        }
-    });
+document.addEventListener('DOMContentLoaded', function() {
+    const statusSelect = document.getElementById('id_status');
+    const reasonField = document.getElementById('div_id_rejection_reason');
+    function toggleReason() { reasonField.style.display = statusSelect.value === 'rejected' ? 'block' : 'none'; }
+    statusSelect.addEventListener('change', toggleReason);
+    toggleReason();
+});
 </script>
 {% endblock %}

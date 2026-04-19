@@ -1,40 +1,12 @@
-/* Дополнительные стили для автопарка */
-
-.badge {
-    font-size: 0.85rem;
-    padding: 0.35em 0.65em;
-}
-
-.table-hover tbody tr:hover {
-    background-color: rgba(0, 123, 255, 0.05);
-}
-
-.card-header {
-    font-weight: 500;
-}
-
-/* Цветовая индикация статусов в таблицах */
-.status-free {
-    color: #198754;
-    font-weight: 500;
-}
-
-.status-trip {
-    color: #fd7e14;
-    font-weight: 500;
-}
-
-.status-repair {
-    color: #6c757d;
-    font-weight: 500;
-}
-
-/* Для печати отчетов */
-@media print {
-    .navbar, .btn, form, .alert {
-        display: none !important;
-    }
-    .card {
-        border: 1px solid #ddd !important;
-    }
-}
+body { min-height: 100vh; display: flex; flex-direction: column; }
+main { flex: 1; }
+footer { margin-top: auto; }
+.badge { font-size: 0.85rem; padding: 0.35em 0.65em; }
+.table-hover tbody tr:hover { background-color: rgba(0, 123, 255, 0.05); }
+.card-header { font-weight: 500; }
+.table-warning { --bs-table-bg: #fff3cd; }
+.display-4 { font-size: 2.5rem; font-weight: 300; }
+.alert { animation: slideDown 0.3s ease-out; }
+@keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+@media print { .navbar, .btn, form, .alert, footer { display: none !important; } .card { border: 1px solid #ddd !important; break-inside: avoid; } }
+.btn-sm { margin: 0 2px; }

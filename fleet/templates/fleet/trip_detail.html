@@ -3,100 +3,37 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>
-        <i class="bi bi-journal-text"></i> Детали поездки
-    </h1>
+    <h1><i class="bi bi-journal-text"></i> Детали поездки</h1>
     <div>
-        {% if trip.is_active %}
-            <a href="{% url 'trip_close' trip.pk %}" class="btn btn-success">
-                <i class="bi bi-check-circle"></i> Завершить поездку
-            </a>
+        {% if trip.is_active and user.profile.is_dispatcher %}
+        <a href="{% url 'trip_close' trip.pk %}" class="btn btn-success"><i class="bi bi-check-circle"></i> Завершить</a>
         {% endif %}
-        <a href="{% url 'trip_list' %}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> К журналу
-        </a>
+        <a href="{% url 'trip_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> К журналу</a>
     </div>
 </div>
 
 <div class="row">
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <i class="bi bi-info-circle"></i> Основная информация
-            </div>
+            <div class="card-header bg-primary text-white">Основная информация</div>
             <div class="card-body">
                 <table class="table table-borderless">
-                    <tr>
-                        <th width="200">Автомобиль:</th>
-                        <td>
-                            <a href="{% url 'car_detail' trip.car.pk %}">
-                                {{ trip.car.brand_model }} ({{ trip.car.license_plate }})
-                            </a>
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Водитель:</th>
-                        <td>{{ trip.driver.name }}</td>
-                    </tr>
-                    <tr>
-                        <th>Статус:</th>
-                        <td>
-                            {% if trip.is_active %}
-                                <span class="badge bg-warning">Активная (в рейсе)</span>
-                            {% else %}
-                                <span class="badge bg-success">Завершена</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% if trip.request %}
-                    <tr>
-                        <th>Заявка:</th>
-                        <td>
-                            Заявитель: {{ trip.request.requester_name }}<br>
-                            Дата: {{ trip.request.trip_date|date:"d.m.Y" }}
-                        </td>
-                    </tr>
-                    {% endif %}
+                    <tr><th>Автомобиль:</th><td><a href="{% url 'car_detail' trip.car.pk %}">{{ trip.car.brand_model }} ({{ trip.car.license_plate }})</a></td></tr>
+                    <tr><th>Водитель:</th><td>{{ trip.driver.name }}</td></tr>
+                    <tr><th>Статус:</th><td>{% if trip.is_active %}<span class="badge bg-warning">Активная</span>{% else %}<span class="badge bg-success">Завершена</span>{% endif %}</td></tr>
                 </table>
             </div>
         </div>
     </div>
-
     <div class="col-md-6">
         <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <i class="bi bi-speedometer"></i> Данные пробега
-            </div>
+            <div class="card-header bg-info text-white">Данные пробега</div>
             <div class="card-body">
                 <table class="table table-borderless">
-                    <tr>
-                        <th>Дата и время выезда:</th>
-                        <td>{{ trip.departure_date|date:"d.m.Y H:i" }}</td>
-                    </tr>
-                    <tr>
-                        <th>Пробег при выезде:</th>
-                        <td>{{ trip.departure_mileage }} км</td>
-                    </tr>
-                    <tr>
-                        <th>Дата и время возврата:</th>
-                        <td>
-                            {% if trip.return_date %}
-                                {{ trip.return_date|date:"d.m.Y H:i" }}
-                            {% else %}
-                                <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    <tr>
-                        <th>Пробег при возврате:</th>
-                        <td>
-                            {% if trip.return_mileage %}
-                                {{ trip.return_mileage }} км
-                            {% else %}
-                                <span class="text-muted">—</span>
-                            {% endif %}
-                        </td>
-                    </tr>
+                    <tr><th>Выезд:</th><td>{{ trip.departure_date|date:"d.m.Y H:i" }}</td></tr>
+                    <tr><th>Пробег при выезде:</th><td>{{ trip.departure_mileage }} км</td></tr>
+                    <tr><th>Возврат:</th><td>{% if trip.return_date %}{{ trip.return_date|date:"d.m.Y H:i" }}{% else %}—{% endif %}</td></tr>
+                    <tr><th>Пробег при возврате:</th><td>{% if trip.return_mileage %}{{ trip.return_mileage }} км{% else %}—{% endif %}</td></tr>
                 </table>
             </div>
         </div>
@@ -104,17 +41,6 @@
 </div>
 
 {% if trip.distance %}
-<div class="row">
-    <div class="col-12">
-        <div class="card bg-light">
-            <div class="card-body text-center">
-                <h3 class="mb-0">
-                    <i class="bi bi-arrow-left-right"></i> 
-                    Пройденное расстояние: <strong>{{ trip.distance }} км</strong>
-                </h3>
-            </div>
-        </div>
-    </div>
-</div>
+<div class="row"><div class="col-12"><div class="card bg-light"><div class="card-body text-center"><h3><i class="bi bi-arrow-left-right"></i> Пройдено: <strong>{{ trip.distance }} км</strong></h3></div></div></div></div>
 {% endif %}
 {% endblock %}

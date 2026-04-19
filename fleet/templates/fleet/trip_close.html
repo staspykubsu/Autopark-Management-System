@@ -8,48 +8,27 @@
 <div class="row">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-success text-white">
-                <i class="bi bi-flag-checkered"></i> Возврат автомобиля
-            </div>
+            <div class="card-header bg-success text-white"><i class="bi bi-flag-checkered"></i> Возврат автомобиля</div>
             <div class="card-body">
                 <div class="alert alert-info">
                     <h5>Данные поездки:</h5>
                     <p><strong>Автомобиль:</strong> {{ trip.car.brand_model }} ({{ trip.car.license_plate }})</p>
                     <p><strong>Водитель:</strong> {{ trip.driver.name }}</p>
-                    <p><strong>Дата выезда:</strong> {{ trip.departure_date|date:"d.m.Y H:i" }}</p>
+                    <p><strong>Выезд:</strong> {{ trip.departure_date|date:"d.m.Y H:i" }}</p>
                     <p><strong>Пробег при выезде:</strong> {{ trip.departure_mileage }} км</p>
                 </div>
-
-                <form method="post">
-                    {% csrf_token %}
-                    {{ form|crispy }}
-                    <div class="mt-3">
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle"></i> Завершить поездку
-                        </button>
-                        <a href="{% url 'trip_list' %}" class="btn btn-secondary">
-                            <i class="bi bi-x-circle"></i> Отмена
-                        </a>
-                    </div>
+                <form method="post">{% csrf_token %}{{ form|crispy }}
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Завершить</button>
+                    <a href="{% url 'trip_list' %}" class="btn btn-secondary">Отмена</a>
                 </form>
             </div>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header">
-                <i class="bi bi-calculator"></i> Расчет
-            </div>
-            <div class="card-body">
-                <p>После ввода пробега при возврате система автоматически:</p>
-                <ul>
-                    <li>Рассчитает пройденное расстояние</li>
-                    <li>Обновит общий пробег автомобиля</li>
-                    <li>Изменит статус на «Свободна»</li>
-                </ul>
-                <p class="text-danger"><strong>Внимание!</strong> Пробег при возврате должен быть больше пробега при выезде.</p>
-            </div>
-        </div>
+        <div class="card"><div class="card-header">Расчет</div><div class="card-body">
+            <p>После ввода пробега система автоматически рассчитает пройденное расстояние и обновит пробег автомобиля.</p>
+            <p class="text-danger"><strong>Внимание!</strong> Пробег при возврате должен быть больше пробега при выезде.</p>
+        </div></div>
     </div>
 </div>
 {% endblock %}

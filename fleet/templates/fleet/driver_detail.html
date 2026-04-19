@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+{% block title %}{{ driver.name }} — Автопарк «Ветерок»{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-person"></i> {{ driver.name }}</h1>
+    <a href="{% url 'driver_list' %}" class="btn btn-outline-primary"><i class="bi bi-arrow-left"></i> К списку</a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">Информация</div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr><th>ФИО:</th><td>{{ driver.name }}</td></tr>
+                    <tr><th>Номер прав:</th><td>{{ driver.license_number|default:"—" }}</td></tr>
+                    <tr><th>Телефон:</th><td>{{ driver.phone|default:"—" }}</td></tr>
+                    <tr><th>Всего поездок:</th><td>{{ trips.count }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">История поездок</div>
+            <div class="card-body p-0">
+                {% if trips %}
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>Дата</th><th>Автомобиль</th><th>Пробег</th><th>Пройдено</th></tr></thead>
+                    <tbody>
+                        {% for trip in trips %}
+                        <tr>
+                            <td>{{ trip.departure_date|date:"d.m.Y H:i" }}</td>
+                            <td>{{ trip.car.license_plate }}</td>
+                            <td>{{ trip.departure_mileage }} км</td>
+                            <td>{{ trip.distance|default:"—" }} км</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}<p class="text-center py-4 text-muted">Нет поездок</p>{% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -4,133 +4,27 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>
-        <i class="bi bi-file-plus"></i> Создание заявки на автомобиль
-    </h1>
-    <a href="{% url 'request_list' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-arrow-left"></i> К списку заявок
-    </a>
+    <h1><i class="bi bi-file-plus"></i> Создание заявки</h1>
+    <a href="{% url 'request_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> К списку</a>
 </div>
 
 <div class="row">
     <div class="col-md-8">
         <div class="card">
-            <div class="card-header bg-primary text-white">
-                <i class="bi bi-file-text"></i> Заполните форму заявки
-            </div>
+            <div class="card-header bg-primary text-white">Заполните форму</div>
             <div class="card-body">
-                <form method="post" novalidate>
-                    {% csrf_token %}
-                    
-                    <div class="mb-3">
-                        {{ form.requester_name|as_crispy_field }}
-                    </div>
-                    
-                    <div class="mb-3">
-                        {{ form.trip_date|as_crispy_field }}
-                    </div>
-
-                    <div class="mt-4">
-                        <button type="submit" class="btn btn-success btn-lg">
-                            <i class="bi bi-check-circle"></i> Создать заявку
-                        </button>
-                        <a href="{% url 'request_list' %}" class="btn btn-secondary btn-lg">
-                            <i class="bi bi-x-circle"></i> Отмена
-                        </a>
-                    </div>
+                <form method="post">{% csrf_token %}{{ form|crispy }}
+                    <button type="submit" class="btn btn-success"><i class="bi bi-check-circle"></i> Создать заявку</button>
+                    <a href="{% url 'request_list' %}" class="btn btn-secondary">Отмена</a>
                 </form>
             </div>
         </div>
     </div>
-
     <div class="col-md-4">
-        <div class="card">
-            <div class="card-header bg-info text-white">
-                <i class="bi bi-info-circle"></i> Информация
-            </div>
-            <div class="card-body">
-                <h6>Как это работает:</h6>
-                <ol class="small">
-                    <li>Вы создаете заявку, указав дату желаемой поездки</li>
-                    <li>Диспетчер рассматривает заявку</li>
-                    <li>При одобрении заявки, вы сможете получить автомобиль</li>
-                </ol>
-                <hr>
-                <h6>Статусы заявок:</h6>
-                <ul class="list-unstyled small">
-                    <li class="mb-2">
-                        <span class="badge bg-info">Новая</span> — заявка создана, ожидает рассмотрения
-                    </li>
-                    <li class="mb-2">
-                        <span class="badge bg-success">Одобрена</span> — диспетчер подтвердил выдачу авто
-                    </li>
-                    <li class="mb-2">
-                        <span class="badge bg-danger">Отклонена</span> — в выдаче автомобиля отказано
-                    </li>
-                </ul>
-                <hr>
-                <div class="alert alert-warning small mb-0">
-                    <i class="bi bi-exclamation-triangle"></i>
-                    Убедитесь, что дата поездки указана корректно. 
-                    Заявки на прошедшие даты не принимаются.
-                </div>
-            </div>
-        </div>
-
-        <div class="card mt-3">
-            <div class="card-header bg-success text-white">
-                <i class="bi bi-question-circle"></i> Часто задаваемые вопросы
-            </div>
-            <div class="card-body">
-                <div class="accordion" id="faqAccordion">
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                                Когда можно получить машину?
-                            </button>
-                        </h2>
-                        <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small">
-                                После одобрения заявки диспетчером, вы можете получить автомобиль 
-                                в указанную дату в рабочее время автопарка (с 8:00 до 20:00).
-                            </div>
-                        </div>
-                    </div>
-                    <div class="accordion-item">
-                        <h2 class="accordion-header">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
-                                Сколько рассматривается заявка?
-                            </button>
-                        </h2>
-                        <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                            <div class="accordion-body small">
-                                Обычно заявки рассматриваются в течение 1-2 часов в рабочее время.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <div class="card"><div class="card-header bg-info text-white">Информация</div><div class="card-body">
+            <h6>Статусы заявок:</h6>
+            <ul><li><span class="badge bg-info">Новая</span> — ожидает</li><li><span class="badge bg-success">Одобрена</span> — подтверждена</li><li><span class="badge bg-danger">Отклонена</span> — отказано</li></ul>
+        </div></div>
     </div>
 </div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const dateInput = document.getElementById('id_trip_date');
-        if (dateInput) {
-            // Устанавливаем минимальную дату (сегодня)
-            const today = new Date().toISOString().split('T')[0];
-            dateInput.setAttribute('min', today);
-            
-            // Если дата не выбрана, устанавливаем завтрашнюю дату по умолчанию
-            if (!dateInput.value) {
-                const tomorrow = new Date();
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                dateInput.value = tomorrow.toISOString().split('T')[0];
-            }
-        }
-    });
-</script>
 {% endblock %}

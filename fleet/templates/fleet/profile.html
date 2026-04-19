@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+{% block title %}Профиль — Автопарк «Ветерок»{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="bi bi-person-circle"></i> Мой профиль</h1>
+    <a href="{% url 'profile_edit' %}" class="btn btn-outline-primary"><i class="bi bi-pencil"></i> Редактировать</a>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white"><i class="bi bi-info-circle"></i> Информация</div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr><th>Логин:</th><td>{{ user.username }}</td></tr>
+                    <tr><th>Имя:</th><td>{{ user.get_full_name }}</td></tr>
+                    <tr><th>Email:</th><td>{{ user.email }}</td></tr>
+                    <tr><th>Роль:</th><td><span class="badge bg-info">{{ profile.get_role_display }}</span></td></tr>
+                    <tr><th>Телефон:</th><td>{{ profile.phone|default:"—" }}</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        {% if profile.is_driver %}
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white"><i class="bi bi-file-text"></i> Мои заявки</div>
+                <div class="card-body p-0">
+                    {% if my_requests %}
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Дата</th><th>Статус</th><th>Создана</th></tr></thead>
+                            <tbody>
+                                {% for req in my_requests %}
+                                <tr>
+                                    <td>{{ req.trip_date|date:"d.m.Y" }}</td>
+                                    <td>{% if req.status == 'new' %}<span class="badge bg-info">Новая</span>{% elif req.status == 'approved' %}<span class="badge bg-success">Одобрена</span>{% else %}<span class="badge bg-danger">Отклонена</span>{% endif %}</td>
+                                    <td>{{ req.created_at|date:"d.m.Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-center py-4 text-muted">У вас пока нет заявок</p>
+                    {% endif %}
+                </div>
+                <div class="card-footer"><a href="{% url 'request_add' %}" class="btn btn-success"><i class="bi bi-plus-circle"></i> Создать заявку</a></div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-info text-white"><i class="bi bi-clock-history"></i> История поездок</div>
+                <div class="card-body p-0">
+                    {% if my_trips %}
+                        <table class="table table-hover mb-0">
+                            <thead><tr><th>Дата</th><th>Автомобиль</th><th>Пройдено</th></tr></thead>
+                            <tbody>
+                                {% for trip in my_trips %}
+                                <tr>
+                                    <td>{{ trip.departure_date|date:"d.m.Y" }}</td>
+                                    <td>{{ trip.car.license_plate }}</td>
+                                    <td>{{ trip.distance|default:"—" }} км</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p class="text-center py-4 text-muted">Нет поездок</p>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
