@@ -248,10 +248,30 @@ class Trip(models.Model):
     
     def start_trip(self, car):
         """Начать поездку (вызывается водителем)"""
+        from django.utils import timezone
+        
         if self.departure_date is not None:
             raise ValidationError('Поездка уже начата')
         if car.status != 'free':
             raise ValidationError('Автомобиль недоступен')
+        
+        # Проверка даты: только в день, указанный в заявке
+        if self.request:
+            trip_date = self.request.trip_date
+            today = timezone.localdate()  # ИСПОЛЬЗУЕМ localdate()
+            
+            if trip_date != today:
+                if trip_date < today:
+                    raise ValidationError(
+                        f'Дата поездки ({trip_date.strftime("%d.%m.%Y")}) уже прошла. '
+                        f'Создайте новую заявку.'
+                    )
+                else:
+                    days_left = (trip_date - today).days
+                    raise ValidationError(
+                        f'Поездка запланирована на {trip_date.strftime("%d.%m.%Y")}. '
+                        f'До начала осталось {days_left} дн.'
+                    )
         
         self.car = car
         self.departure_date = timezone.now()
@@ -282,3 +302,23 @@ class Trip(models.Model):
             self.request.save()
         
         self.save()
+    
+    def can_be_started(self):
+        """Проверяет, можно ли начать поездку сегодня"""
+        from django.utils import timezone
+        
+        if self.departure_date is not None:
+            return False, 'Поездка уже начата'
+        
+        if self.request:
+            trip_date = self.request.trip_date
+            today = timezone.localdate()  # Используем localdate вместо now().date()
+            
+            if trip_date != today:
+                if trip_date < today:
+                    return False, f'Дата поездки ({trip_date.strftime("%d.%m.%Y")}) уже прошла'
+                else:
+                    days_left = (trip_date - today).days
+                    return False, f'Поездка запланирована на {trip_date.strftime("%d.%m.%Y")} (через {days_left} дн.)'
+        
+        return True, 'Можно начать поездку'

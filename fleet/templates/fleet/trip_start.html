@@ -14,14 +14,24 @@
             <div class="card-body">
                 <div class="alert alert-info">
                     <i class="bi bi-info-circle"></i>
-                    <strong>Заявка одобрена.</strong> Выберите свободный автомобиль для начала поездки.
+                    <strong>Заявка одобрена.</strong>
+                    {% if trip_date %}
+                        <br>Дата поездки: <strong>{{ trip_date|date:"d.m.Y" }}</strong>
+                        <br>Сегодня: <strong>{% now "d.m.Y" %}</strong>
+                        {% if trip_date|date:"Y-m-d" == today|date:"Y-m-d" %}
+                            <br><span class="text-success">✓ Можно начинать поездку</span>
+                        {% endif %}
+                    {% endif %}
                 </div>
                 
                 {% if form.fields.car.queryset.count == 0 %}
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle"></i>
-                        <strong>Нет свободных автомобилей!</strong> Пожалуйста, обратитесь к диспетчеру.
+                        <strong>Нет свободных автомобилей!</strong> Обратитесь к диспетчеру.
                     </div>
+                    <a href="{% url 'my_trips' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Назад
+                    </a>
                 {% else %}
                     <form method="post">
                         {% csrf_token %}
@@ -38,15 +48,42 @@
     
     <div class="col-md-4">
         <div class="card">
-            <div class="card-header">Инструкция</div>
+            <div class="card-header">Информация о заявке</div>
             <div class="card-body">
-                <ol>
-                    <li>Выберите свободный автомобиль из списка</li>
+                {% if trip.request %}
+                    <table class="table table-sm">
+                        <tr><th>Заявка №:</th><td>{{ trip.request.id }}</td></tr>
+                        <tr><th>Дата поездки:</th><td><strong>{{ trip.request.trip_date|date:"d.m.Y" }}</strong></td></tr>
+                        <tr><th>Статус:</th><td><span class="badge bg-success">Одобрена</span></td></tr>
+                    </table>
+                    
+                    {% now "Y-m-d" as today %}
+                    {% if trip.request.trip_date|date:"Y-m-d" == today %}
+                        <div class="alert alert-success">
+                            <i class="bi bi-check-circle"></i> Сегодня день поездки!
+                        </div>
+                    {% elif trip.request.trip_date|date:"Y-m-d" < today %}
+                        <div class="alert alert-danger">
+                            <i class="bi bi-x-circle"></i> Дата поездки прошла!
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="bi bi-hourglass-split"></i> 
+                            До даты поездки осталось {{ trip.request.trip_date|timeuntil }}
+                        </div>
+                    {% endif %}
+                {% endif %}
+                
+                <hr>
+                <h6>Инструкция:</h6>
+                <ol class="small">
+                    <li>Выберите свободный автомобиль</li>
                     <li>Нажмите «Начать поездку»</li>
-                    <li>Текущий пробег автомобиля будет зафиксирован автоматически</li>
+                    <li>Пробег зафиксируется автоматически</li>
                 </ol>
-                <p class="text-muted small">
-                    После начала поездки статус автомобиля изменится на «В рейсе».
+                <p class="text-danger small">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Начать поездку можно только в день, указанный в заявке!
                 </p>
             </div>
         </div>

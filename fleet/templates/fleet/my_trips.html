@@ -12,10 +12,26 @@
 {% if waiting_trip %}
 <div class="alert alert-info">
     <i class="bi bi-hourglass-split"></i>
-    <strong>Ожидает начала:</strong> Заявка одобрена. 
-    <a href="{% url 'trip_start' waiting_trip.id %}" class="btn btn-success btn-sm ms-3">
-        <i class="bi bi-play-circle"></i> Начать поездку
-    </a>
+    <strong>Ожидает начала:</strong> 
+    {% if waiting_trip.request %}
+        Заявка №{{ waiting_trip.request.id }} на {{ waiting_trip.request.trip_date|date:"d.m.Y" }}
+    {% endif %}
+    
+    {% now "Y-m-d" as today %}
+    {% if waiting_trip.request.trip_date|date:"Y-m-d" == today %}
+        <a href="{% url 'trip_start' waiting_trip.id %}" class="btn btn-success btn-sm ms-3">
+            <i class="bi bi-play-circle"></i> Начать поездку (сегодня)
+        </a>
+    {% elif waiting_trip.request.trip_date < today %}
+        <span class="badge bg-danger ms-3">
+            <i class="bi bi-exclamation-triangle"></i> Дата прошла
+        </span>
+    {% else %}
+        <span class="badge bg-warning ms-3">
+            <i class="bi bi-calendar"></i> 
+            Можно начать {{ waiting_trip.request.trip_date|date:"d.m.Y" }}
+        </span>
+    {% endif %}
 </div>
 {% endif %}
 

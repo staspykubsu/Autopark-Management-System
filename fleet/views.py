@@ -614,8 +614,17 @@ class TripStartView(DriverRequiredMixin, View):
             messages.error(request, 'Эту поездку нельзя начать')
             return redirect('my_trips')
         
+        can_start, message = trip.can_be_started()
+        if not can_start:
+            messages.error(request, message)
+            return redirect('my_trips')
+        
         form = TripStartForm()
-        return render(request, 'fleet/trip_start.html', {'form': form, 'trip': trip})
+        return render(request, 'fleet/trip_start.html', {
+            'form': form,
+            'trip': trip,
+            'trip_date': trip.request.trip_date if trip.request else None
+        })
     
     def post(self, request, trip_id):
         try:
@@ -626,6 +635,11 @@ class TripStartView(DriverRequiredMixin, View):
         
         if not trip.is_waiting():
             messages.error(request, 'Эту поездку нельзя начать')
+            return redirect('my_trips')
+        
+        can_start, message = trip.can_be_started()
+        if not can_start:
+            messages.error(request, message)
             return redirect('my_trips')
         
         form = TripStartForm(request.POST)
@@ -639,11 +653,19 @@ class TripStartView(DriverRequiredMixin, View):
                 messages.success(request, f'Поездка начата. Автомобиль {car.license_plate}')
             except ValidationError as e:
                 messages.error(request, str(e))
-                return render(request, 'fleet/trip_start.html', {'form': form, 'trip': trip})
+                return render(request, 'fleet/trip_start.html', {
+                    'form': form,
+                    'trip': trip,
+                    'trip_date': trip.request.trip_date if trip.request else None
+                })
             
             return redirect('my_trips')
         
-        return render(request, 'fleet/trip_start.html', {'form': form, 'trip': trip})
+        return render(request, 'fleet/trip_start.html', {
+            'form': form,
+            'trip': trip,
+            'trip_date': trip.request.trip_date if trip.request else None
+        })
 
 class TripEndView(DriverRequiredMixin, View):
     """Завершение поездки водителем"""
