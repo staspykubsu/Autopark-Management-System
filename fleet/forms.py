@@ -113,9 +113,21 @@ class RequestForm(forms.ModelForm):
             'trip_date': forms.DateInput(attrs={
                 'class': 'form-control', 
                 'type': 'date',
-                'min': timezone.now().date().isoformat()
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['trip_date'].widget.attrs['min'] = timezone.localdate().isoformat()
+    
+    def clean_trip_date(self):
+        trip_date = self.cleaned_data.get('trip_date')
+        today = timezone.localdate()
+        
+        if trip_date < today:
+            raise forms.ValidationError('Нельзя создать заявку на прошедшую дату. Выберите сегодняшнюю или будущую дату.')
+        
+        return trip_date
 
 
 class RequestProcessForm(forms.ModelForm):

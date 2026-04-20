@@ -159,7 +159,7 @@ class Request(models.Model):
         return f'{self.driver.name} - {self.trip_date}'
     
     def clean(self):
-        if self.trip_date and self.trip_date < timezone.now().date():
+        if self.trip_date and self.trip_date < timezone.localdate():
             raise ValidationError({'trip_date': 'Дата поездки не может быть в прошлом'})
         
         if not self.pk and hasattr(self, 'driver') and self.driver:
@@ -169,7 +169,7 @@ class Request(models.Model):
                 raise ValidationError('У вас есть незавершенная поездка')
             if self.driver.has_active_trip():
                 raise ValidationError('У вас есть активная поездка')
-
+    
 
 class Trip(models.Model):
     """Модель поездки (смены)"""

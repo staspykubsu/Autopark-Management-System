@@ -398,7 +398,6 @@ class RequestCreateView(DriverRequiredMixin, CreateView):
     success_url = reverse_lazy('request_list')
     
     def dispatch(self, request, *args, **kwargs):
-        # Проверяем, может ли водитель создать заявку
         try:
             driver = request.user.driver
             if not driver.can_create_request():
@@ -418,8 +417,14 @@ class RequestCreateView(DriverRequiredMixin, CreateView):
     def form_valid(self, form):
         request_obj = form.save(commit=False)
         request_obj.driver = self.request.user.driver
+        
+        # Дополнительная проверка даты
+        if request_obj.trip_date < timezone.localdate():
+            messages.error(self.request, 'Нельзя создать заявку на прошедшую дату')
+            return self.form_invalid(form)
+        
         request_obj.save()
-        messages.success(self.request, 'Заявка успешно создана и отправлена на рассмотрение')
+        messages.success(self.request, f'Заявка на {request_obj.trip_date.strftime("%d.%m.%Y")} успешно создана')
         return super().form_valid(form)
 
 
