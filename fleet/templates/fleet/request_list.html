@@ -15,36 +15,103 @@
         <a href="?status=new" class="btn btn-outline-info {% if current_filter == 'new' %}active{% endif %}">Новые</a>
         <a href="?status=approved" class="btn btn-outline-success {% if current_filter == 'approved' %}active{% endif %}">Одобренные</a>
         <a href="?status=rejected" class="btn btn-outline-danger {% if current_filter == 'rejected' %}active{% endif %}">Отклоненные</a>
+        <a href="?status=completed" class="btn btn-outline-primary {% if current_filter == 'completed' %}active{% endif %}">Завершенные</a>
     </div>
 </div>
 
 <div class="table-responsive">
     <table class="table table-hover">
-        <thead><tr><th>Водитель</th><th>Дата поездки</th><th>Статус</th><th>Создана</th><th>Действия</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Водитель</th>
+                <th>Дата поездки</th>
+                <th>Статус</th>
+                <th>Создана</th>
+                <th>Действия</th>
+            </tr>
+        </thead>
         <tbody>
             {% for req in requests %}
             <tr>
                 <td>{{ req.driver.name }}</td>
                 <td>{{ req.trip_date|date:"d.m.Y" }}</td>
-                <td>{% if req.status == 'new' %}<span class="badge bg-info">Новая</span>{% elif req.status == 'approved' %}<span class="badge bg-success">Одобрена</span>{% else %}<span class="badge bg-danger">Отклонена</span>{% endif %}</td>
+                <td>
+                    {% if req.status == 'new' %}
+                        <span class="badge bg-info">Новая</span>
+                    {% elif req.status == 'approved' %}
+                        <span class="badge bg-success">Одобрена</span>
+                    {% elif req.status == 'rejected' %}
+                        <span class="badge bg-danger">Отклонена</span>
+                    {% elif req.status == 'completed' %}
+                        <span class="badge bg-primary">Завершена</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ req.status }}</span>
+                    {% endif %}
+                </td>
                 <td>{{ req.created_at|date:"d.m.Y H:i" }}</td>
                 <td>
                     {% if can_process and req.status == 'new' %}
-                    <a href="{% url 'request_process' req.pk %}" class="btn btn-sm btn-primary">Обработать</a>
+                        <a href="{% url 'request_process' req.pk %}" class="btn btn-sm btn-primary">
+                            <i class="bi bi-check-circle"></i> Обработать
+                        </a>
+                    {% elif req.status == 'approved' %}
+                        <span class="text-success"><i class="bi bi-check-circle"></i> Одобрена</span>
+                    {% elif req.status == 'completed' %}
+                        <span class="text-primary"><i class="bi bi-flag-checkered"></i> Поездка завершена</span>
+                    {% elif req.status == 'rejected' %}
+                        <span class="text-danger"><i class="bi bi-x-circle"></i> Отклонена</span>
                     {% else %}
-                    <span class="text-muted">—</span>
+                        <span class="text-muted">—</span>
                     {% endif %}
                 </td>
             </tr>
-            {% empty %}<tr><td colspan="5" class="text-center py-4">Нет заявок</td></tr>{% endfor %}
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                    <i class="bi bi-inbox" style="font-size: 2rem;"></i><br>
+                    Нет заявок
+                </td>
+            </tr>
+            {% endfor %}
         </tbody>
     </table>
 </div>
+
 {% if is_paginated %}
-<nav><ul class="pagination justify-content-center">
-    {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="?page=1">&laquo;</a></li>{% endif %}
-    <li class="page-item active"><span class="page-link">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span></li>
-    {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">&raquo;</a></li>{% endif %}
-</ul></nav>
+<nav aria-label="Навигация по страницам">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page=1{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-double-left"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            </li>
+        {% endif %}
+        
+        <li class="page-item active">
+            <span class="page-link">
+                {{ page_obj.number }} / {{ page_obj.paginator.num_pages }}
+            </span>
+        </li>
+        
+        {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            </li>
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_filter %}&status={{ current_filter }}{% endif %}">
+                    <i class="bi bi-chevron-double-right"></i>
+                </a>
+            </li>
+        {% endif %}
+    </ul>
+</nav>
 {% endif %}
 {% endblock %}

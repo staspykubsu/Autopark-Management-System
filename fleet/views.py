@@ -140,43 +140,82 @@ def change_role(request, profile_id):
 # ========== ГЛАВНАЯ ==========
 
 class HomeView(LoginRequiredMixin, View):
-    """Главная страница с дашбордом"""
+    """Главная страница с дашбордом (содержимое зависит от роли)"""
     
     def get(self, request):
         user = request.user
         context = {}
         
         if user.profile.is_driver():
+            # Водитель видит свои заявки и поездки
             try:
                 driver = user.driver
+                
+                # Заявки
                 context['my_requests'] = Request.objects.filter(driver=driver).order_by('-created_at')[:5]
-                context['active_trip'] = Trip.objects.filter(driver=driver, return_date__isnull=True).first()
                 context['total_requests'] = Request.objects.filter(driver=driver).count()
                 context['approved_requests'] = Request.objects.filter(driver=driver, status='approved').count()
+                context['completed_requests'] = Request.objects.filter(driver=driver, status='completed').count()
+                
+                # Поездки
+                context['active_trip'] = Trip.objects.filter(
+                    driver=driver, 
+                    departure_date__isnull=False,
+                    return_date__isnull=True
+                ).first()
+                context['my_trips'] = Trip.objects.filter(
+                    driver=driver,
+                    return_date__isnull=False
+                ).order_by('-departure_date')[:5]
                 context['total_trips'] = Trip.objects.filter(driver=driver).count()
+                
             except Driver.DoesNotExist:
-                pass
+                context['my_requests'] = []
+                context['active_trip'] = None
+                context['my_trips'] = []
+                context['total_requests'] = 0
+                context['approved_requests'] = 0
+                context['completed_requests'] = 0
+                context['total_trips'] = 0
         
         elif user.profile.is_dispatcher():
+            # Диспетчер видит заявки и текущие поездки
             context['pending_requests'] = Request.objects.filter(status='new').count()
-            context['active_trips_count'] = Trip.objects.filter(return_date__isnull=True).count()
+            context['active_trips_count'] = Trip.objects.filter(
+                departure_date__isnull=False,
+                return_date__isnull=True
+            ).count()
             context['free_cars'] = Car.objects.filter(status='free').count()
             context['total_cars'] = Car.objects.count()
-            context['recent_requests'] = Request.objects.filter(status='new').order_by('-created_at')[:5]
+            context['recent_requests'] = Request.objects.filter(status='new').order_by('-created_at')[:10]
         
         elif user.profile.is_manager():
+            # Руководство видит общую статистику
             context['total_cars'] = Car.objects.count()
             context['free_cars'] = Car.objects.filter(status='free').count()
             context['cars_in_trip'] = Car.objects.filter(status='trip').count()
             context['cars_in_repair'] = Car.objects.filter(status='repair').count()
-            context['active_trips'] = Trip.objects.filter(return_date__isnull=True).count()
+            context['active_trips'] = Trip.objects.filter(
+                departure_date__isnull=False,
+                return_date__isnull=True
+            ).count()
             context['total_drivers'] = Driver.objects.count()
             context['pending_requests'] = Request.objects.filter(status='new').count()
+            context['recent_requests'] = Request.objects.filter(status='new').order_by('-created_at')[:10]
             
+            # Статистика за текущий месяц
             today = timezone.now().date()
             month_start = today.replace(day=1)
-            month_trips = Trip.objects.filter(departure_date__date__gte=month_start, return_date__isnull=False)
-            total_distance = sum(t.distance() or 0 for t in month_trips)
+            month_trips = Trip.objects.filter(
+                departure_date__date__gte=month_start,
+                return_date__isnull=False
+            )
+            
+            total_distance = 0
+            for trip in month_trips:
+                if trip.distance():
+                    total_distance += trip.distance()
+            
             context['month_distance'] = total_distance
             context['month_trips_count'] = month_trips.count()
         

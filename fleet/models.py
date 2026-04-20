@@ -105,26 +105,20 @@ class Driver(models.Model):
         return self.name
     
     def has_active_request(self):
-        """Проверяет, есть ли у водителя активная (новая или одобренная) заявка"""
+        """Проверяет, есть ли у водителя активная заявка (new или approved)"""
         return self.requests.filter(status__in=['new', 'approved']).exists()
     
     def has_pending_trip(self):
-        """Проверяет, есть ли у водителя заявка, по которой еще не совершена поездка"""
-        # Находим одобренные заявки, по которым еще нет поездки
-        approved_requests = self.requests.filter(status='approved')
-        for req in approved_requests:
-            if not hasattr(req, 'trip') or req.trip is None:
-                return True
-        return False
+        """Проверяет, есть ли у водителя незавершенная поездка"""
+        return self.trips.filter(return_date__isnull=True).exists()
     
     def has_active_trip(self):
-        """Проверяет, есть ли у водителя активная поездка"""
-        return self.trips.filter(return_date__isnull=True).exists()
+        """То же самое, что has_pending_trip (для совместимости)"""
+        return self.has_pending_trip()
     
     def can_create_request(self):
         """Может ли водитель создать новую заявку"""
-        return not self.has_active_request() and not self.has_pending_trip() and not self.has_active_trip()
-
+        return not self.has_active_request() and not self.has_pending_trip()
 
 class Request(models.Model):
     """Модель заявки на получение автомобиля"""
@@ -133,6 +127,7 @@ class Request(models.Model):
         ('new', 'Новая'),
         ('approved', 'Одобрена'),
         ('rejected', 'Отклонена'),
+        ('completed', 'Завершена'),  # ДОБАВЛЯЕМ НОВЫЙ СТАТУС
     ]
 
     driver = models.ForeignKey(
@@ -164,27 +159,16 @@ class Request(models.Model):
         return f'{self.driver.name} - {self.trip_date}'
     
     def clean(self):
-        # Проверка, что дата поездки не в прошлом
         if self.trip_date and self.trip_date < timezone.now().date():
             raise ValidationError({'trip_date': 'Дата поездки не может быть в прошлом'})
         
-        # Проверки для нового объекта (еще не сохранен в БД)
-        if not self.pk:
-            # Проверка на наличие driver_id (если driver уже назначен)
-            if hasattr(self, 'driver_id') and self.driver_id:
-                try:
-                    driver = Driver.objects.get(id=self.driver_id)
-                    if driver.has_active_request():
-                        raise ValidationError('У вас уже есть активная заявка (новая или одобренная)')
-                    if driver.has_pending_trip():
-                        raise ValidationError('У вас есть одобренная заявка, по которой еще не совершена поездка')
-                    if driver.has_active_trip():
-                        raise ValidationError('У вас есть активная поездка. Завершите её перед созданием новой заявки')
-                except Driver.DoesNotExist:
-                    pass
-        else:
-            # Для существующего объекта - дополнительные проверки при изменении статуса
-            pass
+        if not self.pk and hasattr(self, 'driver') and self.driver:
+            if self.driver.has_active_request():
+                raise ValidationError('У вас уже есть активная заявка (новая или одобренная)')
+            if self.driver.has_pending_trip():
+                raise ValidationError('У вас есть незавершенная поездка')
+            if self.driver.has_active_trip():
+                raise ValidationError('У вас есть активная поездка')
 
 
 class Trip(models.Model):
@@ -291,4 +275,10 @@ class Trip(models.Model):
         self.car.mileage += distance
         self.car.status = 'free'
         self.car.save()
+        
+        # МЕНЯЕМ СТАТУС ЗАЯВКИ НА COMPLETED
+        if self.request:
+            self.request.status = 'completed'
+            self.request.save()
+        
         self.save()
